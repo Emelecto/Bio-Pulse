@@ -18,10 +18,14 @@ const DEFAULTS = {
   sleepHours: 7,
   sleepEff: 85,
   sleepPerf: 80,
+  sleepConsistency: 80,
+  sleepNeededH: 8,
   resp: 15,
   skinTemp: 0,
+  spo2: 96,
   steps: 8000,
   wakeUps: 1,
+  calibrating: false,
 };
 
 function buildRow(date, partial) {
@@ -75,13 +79,16 @@ export function normalizeFitbit({ hrv, rhr, sleep, resp, temp }) {
 }
 
 /* ------------------------------------------------------------
-   WHOOP (API v1)
-   - recovery: records[].score.recovery_score, hrv_rmssd_milli,
-               resting_heart_rate
-   - sleep:    records[].score con stage_summary y
-               sleep_performance_percentage, respiratory_rate
+   WHOOP (API v2, base https://api.prod.whoop.com/developer)
+   - recovery: records[].score con hrv_rmssd_milli, resting_heart_rate,
+               recovery_score, skin_temp_celsius, spo2_percentage
+   - sleep:    records[].score con stage_summary.total_in_bed_time_milli,
+               sleep_efficiency_percentage, sleep_performance_percentage,
+               sleep_consistency_percentage, respiratory_rate, disturbance_count,
+               y sleep_needed (SleepNeeded)
    - cycles:   records[].score.strain
-   Las fechas se derivan del campo start/created_at de cada record.
+   La fecha se deriva del campo start/created_at de cada record.
+   La API pagina con next_token (no offset); el fetcher ya lo recorre.
    ------------------------------------------------------------ */
 export function normalizeWhoop({ recovery, sleep, cycles }) {
   const byDate = new Map();
@@ -99,6 +106,8 @@ export function normalizeWhoop({ recovery, sleep, cycles }) {
     if (r.score.resting_heart_rate != null) row.rhr = Math.round(r.score.resting_heart_rate);
     if (r.score.recovery_score != null) row.recovery = Math.round(r.score.recovery_score);
     if (r.score.skin_temp_celsius != null) row.skinTemp = +(r.score.skin_temp_celsius - 33.5).toFixed(1);
+    if (r.score.spo2_percentage != null) row.spo2 = +r.score.spo2_percentage.toFixed(1);
+    if (r.score.user_calibrating != null) row.calibrating = r.score.user_calibrating;
   });
   (sleep?.records || []).forEach((s) => {
     const date = day(s.end || s.start);
@@ -110,8 +119,13 @@ export function normalizeWhoop({ recovery, sleep, cycles }) {
     }
     if (s.score.sleep_efficiency_percentage != null) row.sleepEff = Math.round(s.score.sleep_efficiency_percentage);
     if (s.score.sleep_performance_percentage != null) row.sleepPerf = Math.round(s.score.sleep_performance_percentage);
+    if (s.score.sleep_consistency_percentage != null) row.sleepConsistency = Math.round(s.score.sleep_consistency_percentage);
     if (s.score.respiratory_rate != null) row.resp = +s.score.respiratory_rate.toFixed(1);
     if (st?.disturbance_count != null) row.wakeUps = st.disturbance_count;
+    const sn = s.score.sleep_needed;
+    if (sn?.baseline_milli != null) {
+      row.sleepNeededH = +(sn.baseline_milli / 36e5).toFixed(1);
+    }
   });
   (cycles?.records || []).forEach((c) => {
     const date = day(c.start);

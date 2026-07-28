@@ -58,16 +58,18 @@ check("fitbit: descarta dia sin rhr", f2.length === 0, `got ${f2.length}`);
 /* ---------- WHOOP fixtures ---------- */
 const whoopFix = {
   recovery: { records: [
-    { created_at: "2026-07-26T07:12:00.000Z", score: { recovery_score: 34, hrv_rmssd_milli: 41.8, resting_heart_rate: 61.2, skin_temp_celsius: 34.9 } },
+    { created_at: "2026-07-26T07:12:00.000Z", score: { recovery_score: 34, hrv_rmssd_milli: 41.8, resting_heart_rate: 61.2, skin_temp_celsius: 34.9, spo2_percentage: 95.6875 } },
     { created_at: "2026-07-27T06:58:00.000Z", score: { recovery_score: 71, hrv_rmssd_milli: 63.5, resting_heart_rate: 54.4 } },
   ] },
   sleep: { records: [
     { start: "2026-07-25T23:10:00.000Z", end: "2026-07-26T06:40:00.000Z",
       score: { stage_summary: { total_in_bed_time_milli: 27000000, disturbance_count: 5 },
-               sleep_efficiency_percentage: 83.4, sleep_performance_percentage: 76.0, respiratory_rate: 16.61 } },
+               sleep_efficiency_percentage: 83.4, sleep_performance_percentage: 76.0, sleep_consistency_percentage: 81.0, respiratory_rate: 16.61,
+               sleep_needed: { baseline_milli: 27395716 } } },
     { start: "2026-07-26T23:00:00.000Z", end: "2026-07-27T07:05:00.000Z",
       score: { stage_summary: { total_in_bed_time_milli: 29100000, disturbance_count: 2 },
-               sleep_efficiency_percentage: 91.2, sleep_performance_percentage: 88.0, respiratory_rate: 14.9 } },
+               sleep_efficiency_percentage: 91.2, sleep_performance_percentage: 88.0, sleep_consistency_percentage: 90.0, respiratory_rate: 14.9,
+               sleep_needed: { baseline_milli: 28000000 } } },
   ] },
   cycles: { records: [
     { start: "2026-07-26T04:00:00.000Z", score: { strain: 14.33 } },
@@ -86,6 +88,11 @@ check("whoop: eficiencia y performance", w[1].sleepEff === 91 && w[1].sleepPerf 
 check("whoop: resp con decimales", w[0].resp === 16.6);
 check("whoop: strain del cycle", w[0].dayStrain === 14.3);
 check("whoop: wakeUps de disturbance_count", w[1].wakeUps === 2);
+// Nuevos campos del OpenAPI v2
+check("whoop: spo2 nuevo", w[0].spo2 === 95.7, `got ${w[0].spo2}`);
+check("whoop: sleepConsistency nuevo", w[1].sleepConsistency === 90, `got ${w[1].sleepConsistency}`);
+check("whoop: sleepNeededH (baseline)", w[0].sleepNeededH === 7.6, `got ${w[0].sleepNeededH}`);
+check("whoop: calibrating flag", w[0].calibrating === false);
 
 /* record sin score no revienta */
 const w2 = normalizeWhoop({ recovery: { records: [{ created_at: "2026-07-20T05:00:00Z", score: null }] }, sleep: { records: [] }, cycles: { records: [] } });

@@ -1,0 +1,265 @@
+{
+  "openapi": "3.0.1",
+  "info": { "title": "WHOOP API" },
+  "servers": [{ "url": "https://api.prod.whoop.com/developer" }],
+  "tags": [
+    { "name": "Activity ID Mapping", "description": "Utility endpoints for activity ID mapping" },
+    { "name": "Partner", "description": "Endpoints for trusted WHOOP partner operations" },
+    { "name": "User", "description": "Endpoints for retrieving user profile and measurement data." }
+  ],
+  "paths": {
+    "/v1/activity-mapping/{activityV1Id}": {
+      "get": {
+        "tags": ["Activity ID Mapping"],
+        "summary": "Get V2 UUID for V1 Activity ID",
+        "operationId": "getActivityMapping",
+        "parameters": [{ "name": "activityV1Id", "in": "path", "required": true, "schema": { "type": "integer", "format": "int64" }, "example": 12345678 }],
+        "responses": { "200": { "description": "Successfully retrieved mapping" }, "404": { "description": "Activity mapping not found" }, "500": { "description": "Server error" } }
+      }
+    },
+    "/v2/cycle/{cycleId}": {
+      "get": {
+        "tags": ["Cycle"], "operationId": "getCycleById",
+        "parameters": [{ "name": "cycleId", "in": "path", "required": true, "schema": { "type": "integer", "format": "int64" } }],
+        "responses": { "200": { "description": "Successful request" }, "400": { "description": "Client error" }, "404": { "description": "No resource found" }, "401": { "description": "Invalid authorization" }, "429": { "description": "Rate limiting" }, "500": { "description": "Server error" } },
+        "security": [{ "OAuth": ["read:cycles"] }]
+      }
+    },
+    "/v2/cycle": {
+      "get": {
+        "tags": ["Cycle"], "operationId": "getCycleCollection",
+        "parameters": [
+          { "name": "limit", "in": "query", "schema": { "maximum": 25, "type": "integer", "format": "int32", "default": 10 } },
+          { "name": "start", "in": "query", "schema": { "type": "string", "format": "date-time" } },
+          { "name": "end", "in": "query", "schema": { "type": "string", "format": "date-time" } },
+          { "name": "nextToken", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Successful request" }, "400": { "description": "Client error" }, "401": { "description": "Invalid authorization" }, "429": { "description": "Rate limiting" }, "500": { "description": "Server error" } },
+        "security": [{ "OAuth": ["read:cycles"] }]
+      }
+    },
+    "/v2/cycle/{cycleId}/sleep": {
+      "get": {
+        "tags": ["Cycle"], "operationId": "getSleepForCycle",
+        "parameters": [{ "name": "cycleId", "in": "path", "required": true, "schema": { "type": "integer", "format": "int64" } }],
+        "responses": { "200": { "description": "Successful request" }, "400": { "description": "Client error" }, "404": { "description": "No resource found" }, "401": { "description": "Invalid authorization" }, "429": { "description": "Rate limiting" }, "500": { "description": "Server error" } }
+      }
+    },
+    "/v2/partner/development/add-test-data": {
+      "post": {
+        "tags": ["Partner"], "summary": "Generate test data for partner development",
+        "responses": { "204": { "description": "Test data generated successfully" }, "404": { "description": "Not available in production environments" }, "500": { "description": "Failed to generate test data" } },
+        "security": [{ "Trusted Partner": [] }]
+      }
+    },
+    "/v2/partner/requisition/{id}": {
+      "get": {
+        "tags": ["Partner"], "summary": "Get a lab requisition by ID",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": { "200": { "description": "Lab requisition found" }, "404": { "description": "Lab requisition not found or partner is not an owner" } },
+        "security": [{ "Trusted Partner": [] }]
+      }
+    },
+    "/v2/partner/service-request/{id}": {
+      "get": {
+        "tags": ["Partner"], "summary": "Get a service request by ID",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": { "200": { "description": "Service request found" }, "404": { "description": "Service request not found or partner is not an owner" } },
+        "security": [{ "Trusted Partner": [] }]
+      }
+    },
+    "/v2/partner/token": {
+      "post": {
+        "tags": ["Partner"], "summary": "Request a partner client token",
+        "requestBody": { "content": { "application/json": { "schema": { "type": "object", "required": ["client_id", "client_secret"], "properties": { "client_id": { "type": "string" }, "client_secret": { "type": "string" }, "scope": { "type": "string" }, "grant_type": { "type": "string" } } } } } },
+        "responses": { "200": { "description": "Token issued successfully" }, "401": { "description": "Invalid client credentials" } }
+      }
+    },
+    "/v2/partner/requisition/{id}/status": {
+      "patch": {
+        "tags": ["Partner"], "summary": "Update lab requisition service request statuses",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "requestBody": { "content": { "application/json": { "schema": { "type": "object", "properties": { "task_business_status": { "type": "string" }, "reason": { "type": "string" } } } } } },
+        "responses": { "204": { "description": "Service request statuses updated successfully" }, "404": { "description": "Lab requisition not found or partner is not an owner" } },
+        "security": [{ "Trusted Partner": [] }]
+      }
+    },
+    "/v2/partner/service-request/{id}/status": {
+      "patch": {
+        "tags": ["Partner"], "summary": "Update service request status",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "requestBody": { "content": { "application/json": { "schema": { "type": "object", "properties": { "task_business_status": { "type": "string" }, "reason": { "type": "string" } } } } } },
+        "responses": { "200": { "description": "Service request status updated successfully" }, "404": { "description": "Service request not found or partner is not an owner" } },
+        "security": [{ "Trusted Partner": [] }]
+      }
+    },
+    "/v2/partner/service-request/{id}/results": {
+      "post": {
+        "tags": ["Partner"], "summary": "Create diagnostic report results for a service request",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "requestBody": { "content": { "application/json": { "schema": { "type": "object", "properties": { "status": { "type": "string" }, "observations": { "type": "array", "items": { "type": "object" } } } } } } },
+        "responses": { "201": { "description": "Diagnostic report created successfully" }, "404": { "description": "Service request not found or partner is not an owner" } },
+        "security": [{ "Trusted Partner": [] }]
+      }
+    },
+    "/v2/recovery": {
+      "get": {
+        "tags": ["Recovery"], "operationId": "getRecoveryCollection",
+        "parameters": [
+          { "name": "limit", "in": "query", "schema": { "maximum": 25, "type": "integer", "format": "int32", "default": 10 } },
+          { "name": "start", "in": "query", "schema": { "type": "string", "format": "date-time" } },
+          { "name": "end", "in": "query", "schema": { "type": "string", "format": "date-time" } },
+          { "name": "nextToken", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Successful request" }, "400": { "description": "Client error" }, "401": { "description": "Invalid authorization" }, "429": { "description": "Rate limiting" }, "500": { "description": "Server error" } },
+        "security": [{ "OAuth": ["read:recovery"] }]
+      }
+    },
+    "/v2/cycle/{cycleId}/recovery": {
+      "get": {
+        "tags": ["Recovery"], "operationId": "getRecoveryForCycle",
+        "parameters": [{ "name": "cycleId", "in": "path", "required": true, "schema": { "type": "integer", "format": "int64" } }],
+        "responses": { "200": { "description": "Successful request" }, "400": { "description": "Client error" }, "404": { "description": "No resource found" }, "401": { "description": "Invalid authorization" }, "429": { "description": "Rate limiting" }, "500": { "description": "Server error" } },
+        "security": [{ "OAuth": ["read:recovery"] }]
+      }
+    },
+    "/v2/activity/sleep/{sleepId}": {
+      "get": {
+        "tags": ["Sleep"], "operationId": "getSleepById",
+        "parameters": [{ "name": "sleepId", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": { "200": { "description": "Successful request" }, "400": { "description": "Client error" }, "404": { "description": "No resource found" }, "401": { "description": "Invalid authorization" }, "429": { "description": "Rate limiting" }, "500": { "description": "Server error" } },
+        "security": [{ "OAuth": ["read:sleep"] }]
+      }
+    },
+    "/v2/activity/sleep": {
+      "get": {
+        "tags": ["Sleep"], "operationId": "getSleepCollection",
+        "parameters": [
+          { "name": "limit", "in": "query", "schema": { "maximum": 25, "type": "integer", "format": "int32", "default": 10 } },
+          { "name": "start", "in": "query", "schema": { "type": "string", "format": "date-time" } },
+          { "name": "end", "in": "query", "schema": { "type": "string", "format": "date-time" } },
+          { "name": "nextToken", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Successful request" }, "400": { "description": "Client error" }, "401": { "description": "Invalid authorization" }, "429": { "description": "Rate limiting" }, "500": { "description": "Server error" } },
+        "security": [{ "OAuth": ["read:sleep"] }]
+      }
+    },
+    "/v2/user/measurement/body": {
+      "get": {
+        "tags": ["User"], "summary": "Get User Body Measurements",
+        "responses": { "200": { "description": "Successfully retrieved body measurements" }, "401": { "description": "Invalid authorization" }, "404": { "description": "Not found" }, "429": { "description": "Rate limiting" }, "500": { "description": "Server error" } },
+        "security": [{ "OAuth": ["read:body_measurement"] }]
+      }
+    },
+    "/v2/user/profile/basic": {
+      "get": {
+        "tags": ["User"], "summary": "Get Basic User Profile",
+        "responses": { "200": { "description": "Successfully retrieved user profile" }, "401": { "description": "Invalid authorization" }, "404": { "description": "Not found" }, "429": { "description": "Rate limiting" }, "500": { "description": "Server error" } },
+        "security": [{ "OAuth": ["read:profile"] }]
+      }
+    },
+    "/v2/user/access": {
+      "delete": {
+        "tags": ["User"], "operationId": "revokeUserOAuthAccess",
+        "responses": { "204": { "description": "Successful request" }, "400": { "description": "Client error" }, "401": { "description": "Invalid authorization" }, "429": { "description": "Rate limiting" }, "500": { "description": "Server error" } },
+        "security": [{ "OAuth": [] }]
+      }
+    },
+    "/v2/activity/workout/{workoutId}": {
+      "get": {
+        "tags": ["Workout"], "operationId": "getWorkoutById",
+        "parameters": [{ "name": "workoutId", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": { "200": { "description": "Successful request" }, "400": { "description": "Client error" }, "404": { "description": "No resource found" }, "401": { "description": "Invalid authorization" }, "429": { "description": "Rate limiting" }, "500": { "description": "Server error" } },
+        "security": [{ "OAuth": ["read:workout"] }]
+      }
+    },
+    "/v2/activity/workout": {
+      "get": {
+        "tags": ["Workout"], "operationId": "getWorkoutCollection",
+        "parameters": [
+          { "name": "limit", "in": "query", "schema": { "maximum": 25, "type": "integer", "format": "int32", "default": 10 } },
+          { "name": "start", "in": "query", "schema": { "type": "string", "format": "date-time" } },
+          { "name": "end", "in": "query", "schema": { "type": "string", "format": "date-time" } },
+          { "name": "nextToken", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Successful request" }, "400": { "description": "Client error" }, "401": { "description": "Invalid authorization" }, "429": { "description": "Rate limiting" }, "500": { "description": "Server error" } },
+        "security": [{ "OAuth": ["read:workout"] }]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ActivityIdMappingResponse": { "required": ["v2_activity_id"], "type": "object", "properties": { "v2_activity_id": { "type": "string", "format": "uuid" } } },
+      "Cycle": { "type": "object", "properties": {
+        "id": { "type": "integer", "format": "int64" }, "user_id": { "type": "integer", "format": "int64" },
+        "created_at": { "type": "string", "format": "date-time" }, "updated_at": { "type": "string", "format": "date-time" },
+        "start": { "type": "string", "format": "date-time" }, "end": { "type": "string", "format": "date-time" },
+        "timezone_offset": { "type": "string" }, "score_state": { "type": "string", "enum": ["SCORED", "PENDING_SCORE", "UNSCORABLE"] },
+        "score": { "$ref": "#/components/schemas/CycleScore" }
+      } },
+      "CycleScore": { "required": ["average_heart_rate", "kilojoule", "max_heart_rate", "strain"], "type": "object", "properties": {
+        "strain": { "type": "number", "format": "float" }, "kilojoule": { "type": "number", "format": "float" },
+        "average_heart_rate": { "type": "integer", "format": "int32" }, "max_heart_rate": { "type": "integer", "format": "int32" }
+      } },
+      "Sleep": { "type": "object", "properties": {
+        "id": { "type": "string", "format": "uuid" }, "cycle_id": { "type": "integer", "format": "int64" }, "v1_id": { "type": "integer", "format": "int64" },
+        "user_id": { "type": "integer", "format": "int64" }, "created_at": { "type": "string", "format": "date-time" }, "updated_at": { "type": "string", "format": "date-time" },
+        "start": { "type": "string", "format": "date-time" }, "end": { "type": "string", "format": "date-time" }, "timezone_offset": { "type": "string" }, "nap": { "type": "boolean" },
+        "score_state": { "type": "string", "enum": ["SCORED", "PENDING_SCORE", "UNSCORABLE"] }, "score": { "$ref": "#/components/schemas/SleepScore" }
+      } },
+      "SleepScore": { "required": ["sleep_needed", "stage_summary"], "type": "object", "properties": {
+        "stage_summary": { "$ref": "#/components/schemas/SleepStageSummary" }, "sleep_needed": { "$ref": "#/components/schemas/SleepNeeded" },
+        "respiratory_rate": { "type": "number", "format": "float" }, "sleep_performance_percentage": { "type": "number", "format": "float" },
+        "sleep_consistency_percentage": { "type": "number", "format": "float" }, "sleep_efficiency_percentage": { "type": "number", "format": "float" }
+      } },
+      "SleepNeeded": { "required": ["baseline_milli", "need_from_recent_nap_milli", "need_from_recent_strain_milli", "need_from_sleep_debt_milli"], "type": "object", "properties": {
+        "baseline_milli": { "type": "integer", "format": "int64" }, "need_from_sleep_debt_milli": { "type": "integer", "format": "int64" },
+        "need_from_recent_strain_milli": { "type": "integer", "format": "int64" }, "need_from_recent_nap_milli": { "type": "integer", "format": "int64" }
+      } },
+      "SleepStageSummary": { "required": ["disturbance_count", "sleep_cycle_count", "total_awake_time_milli", "total_in_bed_time_milli", "total_light_sleep_time_milli", "total_no_data_time_milli", "total_rem_sleep_time_milli", "total_slow_wave_sleep_time_milli"], "type": "object", "properties": {
+        "total_in_bed_time_milli": { "type": "integer", "format": "int32" }, "total_awake_time_milli": { "type": "integer", "format": "int32" },
+        "total_no_data_time_milli": { "type": "integer", "format": "int32" }, "total_light_sleep_time_milli": { "type": "integer", "format": "int32" },
+        "total_slow_wave_sleep_time_milli": { "type": "integer", "format": "int32" }, "total_rem_sleep_time_milli": { "type": "integer", "format": "int32" },
+        "sleep_cycle_count": { "type": "integer", "format": "int32" }, "disturbance_count": { "type": "integer", "format": "int32" }
+      } },
+      "Recovery": { "type": "object", "properties": {
+        "cycle_id": { "type": "integer", "format": "int64" }, "sleep_id": { "type": "string", "format": "uuid" }, "user_id": { "type": "integer", "format": "int64" },
+        "created_at": { "type": "string", "format": "date-time" }, "updated_at": { "type": "string", "format": "date-time" },
+        "score_state": { "type": "string", "enum": ["SCORED", "PENDING_SCORE", "UNSCORABLE"] }, "score": { "$ref": "#/components/schemas/RecoveryScore" }
+      } },
+      "RecoveryScore": { "required": ["hrv_rmssd_milli", "recovery_score", "resting_heart_rate", "user_calibrating"], "type": "object", "properties": {
+        "user_calibrating": { "type": "boolean" }, "recovery_score": { "type": "number", "format": "float" }, "resting_heart_rate": { "type": "number", "format": "float" },
+        "hrv_rmssd_milli": { "type": "number", "format": "float" }, "spo2_percentage": { "type": "number", "format": "float" }, "skin_temp_celsius": { "type": "number", "format": "float" }
+      } },
+      "UserBodyMeasurement": { "required": ["height_meter", "max_heart_rate", "weight_kilogram"], "type": "object", "properties": {
+        "height_meter": { "type": "number", "format": "float" }, "weight_kilogram": { "type": "number", "format": "float" }, "max_heart_rate": { "type": "integer", "format": "int32" }
+      } },
+      "UserBasicProfile": { "required": ["email", "first_name", "last_name", "user_id"], "type": "object", "properties": {
+        "user_id": { "type": "integer", "format": "int64" }, "email": { "type": "string" }, "first_name": { "type": "string" }, "last_name": { "type": "string" }
+      } },
+      "WorkoutV2": { "type": "object", "properties": {
+        "id": { "type": "string", "format": "uuid" }, "v1_id": { "type": "integer", "format": "int64" }, "user_id": { "type": "integer", "format": "int64" },
+        "created_at": { "type": "string", "format": "date-time" }, "updated_at": { "type": "string", "format": "date-time" }, "start": { "type": "string", "format": "date-time" },
+        "end": { "type": "string", "format": "date-time" }, "timezone_offset": { "type": "string" }, "sport_name": { "type": "string" }, "sport_id": { "type": "integer", "format": "int32" },
+        "score_state": { "type": "string", "enum": ["SCORED", "PENDING_SCORE", "UNSCORABLE"] }, "score": { "$ref": "#/components/schemas/WorkoutScore" }
+      } },
+      "WorkoutScore": { "required": ["average_heart_rate", "kilojoule", "max_heart_rate", "percent_recorded", "strain", "zone_durations"], "type": "object", "properties": {
+        "strain": { "type": "number", "format": "float" }, "average_heart_rate": { "type": "integer", "format": "int32" }, "max_heart_rate": { "type": "integer", "format": "int32" },
+        "kilojoule": { "type": "number", "format": "float" }, "percent_recorded": { "type": "number", "format": "float" }, "distance_meter": { "type": "number", "format": "float" },
+        "altitude_gain_meter": { "type": "number", "format": "float" }, "altitude_change_meter": { "type": "number", "format": "float" }, "zone_durations": { "$ref": "#/components/schemas/ZoneDurations" }
+      } },
+      "ZoneDurations": { "required": ["zone_five_milli", "zone_four_milli", "zone_one_milli", "zone_three_milli", "zone_two_milli", "zone_zero_milli"], "type": "object", "properties": {
+        "zone_zero_milli": { "type": "integer", "format": "int64" }, "zone_one_milli": { "type": "integer", "format": "int64" }, "zone_two_milli": { "type": "integer", "format": "int64" },
+        "zone_three_milli": { "type": "integer", "format": "int64" }, "zone_four_milli": { "type": "integer", "format": "int64" }, "zone_five_milli": { "type": "integer", "format": "int64" }
+      } },
+      "PartnerTokenRequest": { "required": ["client_id", "client_secret"], "type": "object", "properties": { "client_id": { "type": "string" }, "client_secret": { "type": "string" }, "scope": { "type": "string" }, "grant_type": { "type": "string" } } },
+      "PartnerTokenResponse": { "type": "object", "properties": { "access_token": { "type": "string" }, "expires_in": { "type": "integer", "format": "int32" }, "token_type": { "type": "string" } } }
+    },
+    "securitySchemes": {
+      "OAuth": { "type": "oauth2", "flows": { "authorizationCode": { "authorizationUrl": "https://api.prod.whoop.com/oauth/oauth2/auth", "tokenUrl": "https://api.prod.whoop.com/oauth/oauth2/token", "scopes": {
+        "read:recovery": "Read Recovery data", "read:cycles": "Read cycles data", "read:workout": "Read workout data", "read:sleep": "Read sleep data", "read:profile": "Read profile data", "read:body_measurement": "Read body measurements data"
+      } } } },
+      "Trusted Partner": { "type": "oauth2", "flows": { "clientCredentials": { "tokenUrl": "https://api.prod.whoop.com/developer/v2/partner/token", "scopes": { "whoop-partner/token": "Read service requests and upload results." } } } }
+    }
+  }
+}

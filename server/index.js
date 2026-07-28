@@ -173,12 +173,25 @@ async function fetchFitbitDaily(p, token, days) {
 
 async function fetchWhoopDaily(p, token, days) {
   const start = new Date(Date.now() - days * 864e5).toISOString();
+  const collect = async (path, key) => {
+    let out = [];
+    let next = undefined;
+    do {
+      const url = new URL(`${p.apiBase}${path}`);
+      if (next) url.searchParams.set("nextToken", next);
+      else { url.searchParams.set("start", start); url.searchParams.set("limit", "25"); }
+      const page = await apiGet(url.toString(), token);
+      out = out.concat(page.records || []);
+      next = page.next_token;
+    } while (next);
+    return out;
+  };
   const [recovery, sleep, cycles] = await Promise.all([
-    apiGet(`${p.apiBase}/v1/recovery?start=${start}&limit=25`, token),
-    apiGet(`${p.apiBase}/v1/activity/sleep?start=${start}&limit=25`, token),
-    apiGet(`${p.apiBase}/v1/cycle?start=${start}&limit=25`, token),
+    collect("/v2/recovery", "records"),
+    collect("/v2/activity/sleep", "records"),
+    collect("/v2/cycle", "records"),
   ]);
-  return normalizeWhoop({ recovery, sleep, cycles });
+  return normalizeWhoop({ recovery: { records: recovery }, sleep: { records: sleep }, cycles: { records: cycles } });
 }
 
 app.listen(PORT, () => {
