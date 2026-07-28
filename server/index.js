@@ -1,0 +1,187 @@
+/* ============================================================
+   BIOPULSE BACKEND PROXY — Fase 5 del roadmap
+   ------------------------------------------------------------
+   Resuelve los dos bloqueos que impiden llamar a las APIs de
+   wearables directamente desde el navegador:
+     1. CORS: Fitbit/Whoop no aceptan peticiones desde localhost.
+     2. OAuth: el intercambio de codigo->token requiere el
+        client_secret, que NUNCA debe vivir en el frontend.
+
+   Endpoints:
+     GET  /api/health                    -> ping
+     GET  /api/:provider/auth-url        -> URL de autorizacion OAuth
+     POST /api/:provider/token           -> intercambia code por token
+     GET  /api/:provider/daily?days=30   -> datos diarios normalizados
+
+   El frontend consume SIEMPRE el mismo esquema normalizado:
+     { date, hrv, rhr, recovery, sleepHours, sleepEff, resp, ... }
+   asi el pipeline de 3 modelos no cambia sin importar la fuente.
+   ============================================================ */
+import express from "express";
+import cors from "cors";
+import dotenv from "dotenv";
+import { normalizeFitbit, normalizeWhoop } from "./normalize.js";
+
+dotenv.config();
+
+const app = express();
+app.use(cors());
+app.use(express.json());
+
+const PORT = process.env.PORT || 4000;
+
+// --- Config por proveedor (credenciales en .env, nunca en codigo) ---
+const PROVIDERS = {
+  fitbit: {
+    clientId: process.env.FITBIT_CLIENT_ID,
+    clientSecret: process.env.FITBIT_CLIENT_SECRET,
+    redirectUri: process.env.FITBIT_REDIRECT_URI || "http://localhost:5174/callback/fitbit",
+    authUrl: "https://www.fitbit.com/oauth2/authorize",
+    tokenUrl: "https://api.fitbit.com/oauth2/token",
+    scope: "heartrate sleep activity respiratory_rate temperature",
+    apiBase: "https://api.fitbit.com",
+  },
+  whoop: {
+    clientId: process.env.WHOOP_CLIENT_ID,
+    clientSecret: process.env.WHOOP_CLIENT_SECRET,
+    redirectUri: process.env.WHOOP_REDIRECT_URI || "http://localhost:5174/callback/whoop",
+    authUrl: "https://api.prod.whoop.com/oauth/oauth2/auth",
+    tokenUrl: "https://api.prod.whoop.com/oauth/oauth2/token",
+    scope: "read:recovery read:sleep read:cycles read:body_measurement",
+    apiBase: "https://api.prod.whoop.com/developer",
+  },
+};
+
+function getProvider(req, res) {
+  const p = PROVIDERS[req.params.provider];
+  if (!p) {
+    res.status(404).json({ error: `Proveedor desconocido: ${req.params.provider}` });
+    return null;
+  }
+  return p;
+}
+
+// --- Health check ---
+app.get("/api/health", (_req, res) => {
+  res.json({
+    ok: true,
+    service: "biopulse-proxy",
+    providers: Object.fromEntries(
+      Object.entries(PROVIDERS).map(([k, v]) => [k, { configured: Boolean(v.clientId && v.clientSecret) }])
+    ),
+  });
+});
+
+// --- 1. URL de autorizacion OAuth (el usuario la abre en el navegador) ---
+app.get("/api/:provider/auth-url", (req, res) => {
+  const p = getProvider(req, res);
+  if (!p) return;
+  if (!p.clientId) {
+    return res.status(400).json({ error: "Faltan credenciales: define CLIENT_ID en server/.env (ver README)" });
+  }
+  const url = new URL(p.authUrl);
+  url.searchParams.set("client_id", p.clientId);
+  url.searchParams.set("response_type", "code");
+  url.searchParams.set("redirect_uri", p.redirectUri);
+  url.searchParams.set("scope", p.scope);
+  res.json({ url: url.toString() });
+});
+
+// --- 2. Intercambio codigo -> access token (usa el client_secret) ---
+app.post("/api/:provider/token", async (req, res) => {
+  const p = getProvider(req, res);
+  if (!p) return;
+  const { code } = req.body;
+  if (!code) return res.status(400).json({ error: "Falta 'code' en el body" });
+  if (!p.clientId || !p.clientSecret) {
+    return res.status(400).json({ error: "Faltan credenciales en server/.env" });
+  }
+  try {
+    const body = new URLSearchParams({
+      grant_type: "authorization_code",
+      code,
+      redirect_uri: p.redirectUri,
+      client_id: p.clientId,
+    });
+    const headers = { "Content-Type": "application/x-www-form-urlencoded" };
+    if (req.params.provider === "fitbit") {
+      headers.Authorization = "Basic " + Buffer.from(`${p.clientId}:${p.clientSecret}`).toString("base64");
+    } else {
+      body.set("client_secret", p.clientSecret);
+    }
+    const r = await fetch(p.tokenUrl, { method: "POST", headers, body });
+    const data = await r.json();
+    if (!r.ok) return res.status(r.status).json(data);
+    res.json(data); // { access_token, refresh_token, expires_in, ... }
+  } catch (err) {
+    res.status(502).json({ error: err.message });
+  }
+});
+
+// --- 3. Datos diarios normalizados al esquema del pipeline ---
+app.get("/api/:provider/daily", async (req, res) => {
+  const p = getProvider(req, res);
+  if (!p) return;
+  const token = req.headers.authorization?.replace(/^Bearer\s+/i, "");
+  if (!token) return res.status(401).json({ error: "Falta header Authorization: Bearer <token>" });
+  const days = Math.min(90, Math.max(1, parseInt(req.query.days, 10) || 30));
+
+  try {
+    let rows;
+    if (req.params.provider === "fitbit") {
+      rows = await fetchFitbitDaily(p, token, days);
+    } else {
+      rows = await fetchWhoopDaily(p, token, days);
+    }
+    res.json({ provider: req.params.provider, days: rows.length, rows });
+  } catch (err) {
+    const status = err.status || 502;
+    res.status(status).json({ error: err.message });
+  }
+});
+
+// --- Fetchers por proveedor (crudo -> normalizado) ---
+async function apiGet(url, token) {
+  const r = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+  if (!r.ok) {
+    const e = new Error(`${url} -> HTTP ${r.status}`);
+    e.status = r.status;
+    throw e;
+  }
+  return r.json();
+}
+
+function isoDaysAgo(n) {
+  const d = new Date();
+  d.setDate(d.getDate() - n);
+  return d.toISOString().slice(0, 10);
+}
+
+async function fetchFitbitDaily(p, token, days) {
+  const start = isoDaysAgo(days);
+  const end = isoDaysAgo(0);
+  // Endpoints diarios de Fitbit (Web API 1.2)
+  const [hrv, rhr, sleep, resp, temp] = await Promise.all([
+    apiGet(`${p.apiBase}/1/user/-/hrv/date/${start}/${end}.json`, token),
+    apiGet(`${p.apiBase}/1/user/-/activities/heart/date/${start}/${end}.json`, token),
+    apiGet(`${p.apiBase}/1.2/user/-/sleep/date/${start}/${end}.json`, token),
+    apiGet(`${p.apiBase}/1/user/-/br/date/${start}/${end}.json`, token).catch(() => null),
+    apiGet(`${p.apiBase}/1/user/-/temp/skin/date/${start}/${end}.json`, token).catch(() => null),
+  ]);
+  return normalizeFitbit({ hrv, rhr, sleep, resp, temp });
+}
+
+async function fetchWhoopDaily(p, token, days) {
+  const start = new Date(Date.now() - days * 864e5).toISOString();
+  const [recovery, sleep, cycles] = await Promise.all([
+    apiGet(`${p.apiBase}/v1/recovery?start=${start}&limit=25`, token),
+    apiGet(`${p.apiBase}/v1/activity/sleep?start=${start}&limit=25`, token),
+    apiGet(`${p.apiBase}/v1/cycle?start=${start}&limit=25`, token),
+  ]);
+  return normalizeWhoop({ recovery, sleep, cycles });
+}
+
+app.listen(PORT, () => {
+  console.log(`[biopulse-proxy] escuchando en http://localhost:${PORT}`);
+  console.log(`[biopulse-proxy] salud: http://localhost:${PORT}/api/health`);
+});

@@ -1,9 +1,13 @@
 # Dependencias
 node_modules/
 biopulse-vite/node_modules/
+server/node_modules/
 
 # Builds
 biopulse-vite/dist/
+
+# Secretos del backend (credenciales OAuth)
+server/.env
 
 # Datasets pesados (regenerables/descargables)
 whoop_fitness_dataset_100k.csv
