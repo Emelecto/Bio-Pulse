@@ -433,7 +433,7 @@ function MetricCard({ icon: Icon, label, value, unit, delta, sparkData, accent, 
       {sub && <span style={{ color: C.textFaint }} className="text-[11px] -mt-2">{sub}</span>}
       {sparkData && <Sparkline data={sparkData} color={accent} />}
       {delta !== undefined && !Number.isNaN(delta) && (
-        <span style={{ color: delta >= 0 ? C.teal : C.rose }} className="text-[11px] font-medium">
+        <span style={{ color: delta >= 0 ? C.teal : C.rose }} className="text-[11px] font-medium tabular-nums">
           {delta >= 0 ? "▲" : "▼"} {Math.abs(Math.round(delta * 10) / 10)} vs. semana anterior
         </span>
       )}
@@ -1016,7 +1016,7 @@ export default function App() {
           <button
             onClick={() => setShowModal(true)}
             style={{ background: C.card, border: `1px solid ${C.border}`, color: C.textMuted }}
-            className="w-8 h-8 rounded-full flex items-center justify-center"
+            className="w-10 h-10 rounded-full flex items-center justify-center active:scale-[0.96] transition-transform"
             aria-label="Fuente de datos"
           >
             <Settings size={14} />
@@ -1107,7 +1107,7 @@ export default function App() {
                     color: historyRange === r ? C.bg : C.textMuted,
                     border: `1px solid ${historyRange === r ? C.teal : C.border}`,
                   }}
-                  className="text-[11px] font-semibold px-2.5 py-1 rounded-full"
+                  className="text-[11px] font-semibold px-2.5 py-1 rounded-full transition-colors active:scale-[0.96]"
                 >
                   {r}d
                 </button>
@@ -1360,7 +1360,7 @@ export default function App() {
             <span style={{ color: C.textFaint }} className="text-[11px] uppercase tracking-wider font-medium">Tendencia del indice de riesgo</span>
             <div style={{ background: C.card, border: `1px solid ${C.border}` }} className="flex rounded-lg p-0.5">
               {[7, 14, 30].map((p) => (
-                <button key={p} onClick={() => setPeriod(p)} style={{ background: period === p ? C.teal : "transparent", color: period === p ? C.bg : C.textMuted }} className="text-[11px] font-semibold px-2.5 py-1 rounded-md transition-colors">
+                <button key={p} onClick={() => setPeriod(p)} style={{ background: period === p ? C.teal : "transparent", color: period === p ? C.bg : C.textMuted }} className="text-[11px] font-semibold px-2.5 py-1 rounded-md transition-colors active:scale-[0.96]">
                   {p}d
                 </button>
               ))}
@@ -1435,9 +1435,9 @@ export default function App() {
               <span style={{ color: C.textFaint }} className="text-[10.5px]">Avisame solo cuando el riesgo supere {riskThreshold}</span>
             </div>
             <div className="flex items-center gap-2">
-              <button onClick={() => setRiskThreshold(Math.max(0, riskThreshold - 5))} style={{ background: C.bgSoft, color: C.textMuted, border: `1px solid ${C.border}` }} className="w-7 h-7 rounded-full text-base font-bold">−</button>
-              <span style={{ color: C.amber, fontFamily: "'IBM Plex Mono', monospace" }} className="text-lg font-semibold w-8 text-center">{riskThreshold}</span>
-              <button onClick={() => setRiskThreshold(Math.min(100, riskThreshold + 5))} style={{ background: C.bgSoft, color: C.textMuted, border: `1px solid ${C.border}` }} className="w-7 h-7 rounded-full text-base font-bold">+</button>
+              <button onClick={() => setRiskThreshold(Math.max(0, riskThreshold - 5))} style={{ background: C.bgSoft, color: C.textMuted, border: `1px solid ${C.border}` }} className="w-10 h-10 rounded-full text-base font-bold active:scale-[0.96] transition-transform">−</button>
+              <span style={{ color: C.amber, fontFamily: "'IBM Plex Mono', monospace" }} className="text-lg font-semibold w-8 text-center tabular-nums">{riskThreshold}</span>
+              <button onClick={() => setRiskThreshold(Math.min(100, riskThreshold + 5))} style={{ background: C.bgSoft, color: C.textMuted, border: `1px solid ${C.border}` }} className="w-10 h-10 rounded-full text-base font-bold active:scale-[0.96] transition-transform">+</button>
             </div>
           </div>
 
@@ -1451,7 +1451,7 @@ export default function App() {
           <button
             onClick={() => { if (window.confirm("¿Borrar todos tus datos cargados y restablecer la app?")) { clearAllData(); onClose(); } }}
             style={{ background: `${C.rose}12`, color: C.rose, border: `1px solid ${C.rose}40` }}
-            className="w-full flex items-center justify-center gap-2 text-[12px] font-semibold py-2 rounded-xl"
+            className="w-full flex items-center justify-center gap-2 text-[12px] font-semibold py-2 rounded-xl active:scale-[0.96] transition-transform"
           >
             <Trash2 size={13} /> Borrar mis datos
           </button>
