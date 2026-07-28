@@ -1,0 +1,15 @@
+# Dependencias
+node_modules/
+biopulse-vite/node_modules/
+
+# Builds
+biopulse-vite/dist/
+
+# Datasets pesados (regenerables/descargables)
+whoop_fitness_dataset_100k.csv
+Fitabase Data 3.12.16-4.11.16/
+files.zip
+
+# Sistema
+Thumbs.db
+.DS_Store
