@@ -9,6 +9,18 @@ biopulse-vite/dist/
 # Secretos del backend (credenciales OAuth)
 server/.env
 
+# Entorno Python (entrenamiento de modelos)
+.venv/
+
+# Hermes internals y adjuntos (incluye credenciales)
+.hermes/
+
+# Skill clonado suelto (ya instalado en skills/)
+make-interfaces-feel-better/
+
+# OpenAPI suelto (ya en server/docs/whoop-openapi.json)
+openapi.json
+
 # Datasets pesados (regenerables/descargables)
 whoop_fitness_dataset_100k.csv
 Fitabase Data 3.12.16-4.11.16/

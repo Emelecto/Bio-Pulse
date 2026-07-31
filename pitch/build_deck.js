@@ -374,14 +374,16 @@ function footer(slide, n) {
   const s = pptx.addSlide();
   bg(s, C.bg);
   kicker(s, "Validación · Curvas ROC", C.teal);
-  title(s, "Capacidad discriminativa real (test 80/20)");
-  s.addImage({ path: path.join(FILES, "roc_comparison.png"), x: 0.8, y: 1.95, w: 6.6, h: 4.6 });
+  title(s, "Capacidad discriminativa real (test 80/20, n=100k)");
+  s.addImage({ path: path.join(FILES, "roc_control_estadistico.png"), x: 0.8, y: 1.95, w: 6.6, h: 4.6 });
   card(s, 7.8, 1.95, 4.9, 4.6, C.cardAlt, C.border);
   s.addText([
-    { text: "Que leer aqui", options: { fontFace: F.body, fontSize: 13, bold: true, color: C.teal, breakLine: true, charSpacing: 1 } },
-    { text: "• Las 3 curvas estan muy por encima de la linea de azar (AUC ~0.65-0.69).", options: { fontFace: F.body, fontSize: 13, color: C.text, breakLine: true, lineSpacingMultiple: 1.15 } },
-    { text: "• Gradient Boosting (0.687) y RF (0.666) son claramente superiores al baseline lineal (0.648).", options: { fontFace: F.body, fontSize: 13, color: C.text, breakLine: true, lineSpacingMultiple: 1.15 } },
-    { text: "• Esto justifica usar arboles, no un modelo lineal simple.", options: { fontFace: F.body, fontSize: 13, color: C.text, lineSpacingMultiple: 1.15 } },
+    { text: "AUC por motor (dataset real Whoop 100k)", options: { fontFace: F.body, fontSize: 12.5, bold: true, color: C.teal, breakLine: true, charSpacing: 1 } },
+    { text: "• Control estadístico: 0.994", options: { fontFace: F.body, fontSize: 13, color: C.text, breakLine: true, lineSpacingMultiple: 1.15 } },
+    { text: "• Patrón agudo: 0.995", options: { fontFace: F.body, fontSize: 13, color: C.text, breakLine: true, lineSpacingMultiple: 1.15 } },
+    { text: "• Proceso infeccioso: 1.000*", options: { fontFace: F.body, fontSize: 13, color: C.amber, breakLine: true, lineSpacingMultiple: 1.15 } },
+    { text: "*El flag de infección se deriva de temp. y respiración; el modelo lo aprende casi determinísticamente (ver nota slide 11).", options: { fontFace: F.body, fontSize: 10.5, italic: true, color: C.muted, breakLine: true, lineSpacingMultiple: 1.1 } },
+    { text: "Método: Random Forest (120 árboles), 13 features fisiológicas, split 80/20 estratificado.", options: { fontFace: F.body, fontSize: 11, color: C.muted, lineSpacingMultiple: 1.1 } },
   ], { x: 8.05, y: 2.2, w: 4.4, h: 4.0, align: "left", valign: "top", margin: 0 });
   footer(s, 9);
 }
@@ -393,16 +395,26 @@ function footer(slide, n) {
   const s = pptx.addSlide();
   bg(s, C.bg);
   kicker(s, "Validación · Cross-validation", C.teal);
-  title(s, "No un solo split: 5-fold estratificada");
-  s.addImage({ path: path.join(FILES, "cv_metrics_comparison.png"), x: 0.8, y: 1.95, w: 8.4, h: 3.4 });
-  card(s, 9.5, 1.95, 3.2, 3.4, C.cardAlt, C.border);
-  s.addText([
-    { text: "Por que importa", options: { fontFace: F.body, fontSize: 12, bold: true, color: C.teal, breakLine: true, charSpacing: 1 } },
-    { text: "Las barras de error son la desviacion estándar entre los 5 folds. Son pequenas → los numeros son estables, no suerte de un split.", options: { fontFace: F.body, fontSize: 12.5, color: C.text, lineSpacingMultiple: 1.15 } },
-  ], { x: 9.7, y: 2.15, w: 2.8, h: 3.0, align: "left", valign: "top", margin: 0 });
-  s.addText("Mediamos ROC-AUC, Precisión, Recall y F1. Estratificamos para preservar la prevalencia real de riesgo (~10.6%) en cada fold.", {
-    x: 0.8, y: 5.6, w: 11.9, h: 0.8, fontFace: F.body, fontSize: 13, italic: true, color: C.muted, align: "left", lineSpacingMultiple: 1.15, margin: 0,
+  title(s, "No un solo split: 5-fold estratificada real (n=100k)");
+
+  const cv = [
+    { t: "Control estadístico", auc: "0.994", sd: "0.000", c: C.teal },
+    { t: "Patrón agudo", auc: "0.993", sd: "0.001", c: C.purple },
+    { t: "Proceso infeccioso", auc: "1.000", sd: "0.000", c: C.amber },
+  ];
+  cv.forEach((m, i) => {
+    const x = 0.8 + i * 4.0;
+    card(s, x, 2.1, 3.8, 2.6, C.card, C.border);
+    s.addText(m.t, { x: x + 0.2, y: 2.25, w: 3.4, h: 0.7, fontFace: F.head, fontSize: 14, bold: true, color: C.text, align: "left", margin: 0 });
+    s.addText(m.auc, { x: x + 0.2, y: 2.95, w: 3.4, h: 0.9, fontFace: F.head, fontSize: 38, bold: true, color: m.c, align: "left", margin: 0 });
+    s.addText(`AUC medio ± desv. (5 folds): ${m.sd}`, { x: x + 0.2, y: 3.95, w: 3.4, h: 0.6, fontFace: F.body, fontSize: 11, color: C.muted, align: "left", margin: 0 });
   });
+
+  card(s, 0.8, 5.0, 11.9, 1.6, C.cardAlt, C.border);
+  s.addText([
+    { text: "Por que importa  ·  ", options: { fontFace: F.body, fontSize: 12, bold: true, color: C.teal, charSpacing: 1, breakLine: false } },
+    { text: "La desviación estándar entre los 5 folds es ~0.000-0.001: los números son estables, no suerte de un split. Entrenamos sobre 100,000 filas reales de Whoop; las prevalencias son bajas (0.36%-17.2%), por eso el AUC (no la accuracy) es la métrica honesta.", options: { fontFace: F.body, fontSize: 12.5, color: C.text, lineSpacingMultiple: 1.15 } },
+  ], { x: 1.0, y: 5.15, w: 11.5, h: 1.3, align: "left", valign: "middle", margin: 0 });
   footer(s, 10);
 }
 
@@ -415,25 +427,26 @@ function footer(slide, n) {
   kicker(s, "Validación · Honestidad", C.rose);
   title(s, "Matriz de confusion: somos transparentes");
 
-  s.addImage({ path: path.join(FILES, "confusion_matrix_rf.png"), x: 0.8, y: 2.0, w: 5.6, h: 4.2 });
+  s.addImage({ path: path.join(FILES, "confusion_control_estadistico.png"), x: 0.8, y: 2.0, w: 5.0, h: 3.8 });
 
-  // callout numbers
+  // callout numbers (hold-out 20% del motor control estadistico)
   const data = [
-    { v: "4,415", l: "Negativos bien clasificados (TN)", c: C.teal },
-    { v: "56", l: "Falsas alarmas (FP)", c: C.amber },
-    { v: "380", l: "Riesgo NO detectado (FN)", c: C.rose },
-    { v: "149", l: "Riesgo detectado (TP)", c: C.teal },
+    { v: "15,631", l: "Negativos bien clasificados (TN)", c: C.teal },
+    { v: "925", l: "Falsas alarmas (FP)", c: C.amber },
+    { v: "75", l: "Riesgo NO detectado (FN)", c: C.rose },
+    { v: "3,369", l: "Riesgo detectado (TP)", c: C.teal },
   ];
-  const x0 = 6.8, y0 = 2.1, cw = 5.9, ch = 0.9, gap = 0.18;
+  const x0 = 6.6, y0 = 2.0, cw = 6.1, ch = 0.82, gap = 0.14;
   data.forEach((d, i) => {
     const y = y0 + i * (ch + gap);
     card(s, x0, y, cw, ch, C.cardAlt, C.border);
-    s.addText(d.v, { x: x0 + 0.25, y, w: 1.7, h: ch, fontFace: F.head, fontSize: 28, bold: true, color: d.c, valign: "middle", align: "left", margin: 0 });
-    s.addText(d.l, { x: x0 + 2.0, y, w: cw - 2.2, h: ch, fontFace: F.body, fontSize: 13, color: C.text, valign: "middle", align: "left", margin: 0 });
+    s.addText(d.v, { x: x0 + 0.25, y, w: 1.7, h: ch, fontFace: F.head, fontSize: 26, bold: true, color: d.c, valign: "middle", align: "left", margin: 0 });
+    s.addText(d.l, { x: x0 + 2.0, y, w: cw - 2.2, h: ch, fontFace: F.body, fontSize: 12.5, color: C.text, valign: "middle", align: "left", margin: 0 });
   });
-  s.addText("De 529 casos de riesgo real, detectamos 149 (28%). Es una primera version: la Fase 6 del roadmap mejora esto con datos reales en vivo.", {
-    x: 6.8, y: 6.0, w: 5.9, h: 0.7, fontFace: F.body, fontSize: 12, italic: true, color: C.muted, align: "left", lineSpacingMultiple: 1.15, margin: 0,
-  });
+  s.addText([
+    { text: "Nota de honestidad  ·  ", options: { fontFace: F.body, fontSize: 11, bold: true, color: C.amber, breakLine: false } },
+    { text: "El motor de proceso infeccioso alcanza AUC 1.000 porque su etiqueta se deriva de temperatura y respiración (casi determinista). No es 'predicción aprendida', es una regla clínica; lo declaramos así. Los motores de control y patrón agudo sí son aprendizaje real (AUC 0.99).", options: { fontFace: F.body, fontSize: 11, color: C.muted, lineSpacingMultiple: 1.1 } },
+  ], { x: 6.6, y: 5.75, w: 6.1, h: 1.0, align: "left", valign: "top", margin: 0 });
   footer(s, 11);
 }
 
