@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useEffect } from "react";
 import Papa from "papaparse";
+import { Analytics } from "@vercel/analytics/react";
 import {
   ResponsiveContainer,
   AreaChart,
@@ -1493,6 +1494,7 @@ export default function App() {
           clearAllData={clearAllData}
         />
       )}
+      <Analytics />
     </div>
   );
 }
