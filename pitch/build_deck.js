@@ -547,7 +547,43 @@ function footer(slide, n) {
 }
 
 // ============================================================
-// SLIDE 14 — THE ASK
+// SLIDE 14B — COACH ACCIONABLE PERSONALIZADO (diferenciador)
+// ============================================================
+{
+  const s = pptx.addSlide();
+  bg(s, C.bg);
+  kicker(s, "Diferenciador de producto", C.rose);
+  title(s, "No solo te avisamos: te decimos que hacer");
+
+  // Tres ejemplos de alerta -> recomendacion distinta (personalizada)
+  const ex = [
+    { a: "Fatiga aguda (HRV baja + RHR alta)",
+      r: "Baja la carga de entrenamiento 24-48 h. HRV en 38 ms y RHR en 61 bpm senalan recuperacion insuficiente. Duerme 8 h y evita HIIT hasta que la HRV repunte.",
+      c: C.amber },
+    { a: "Proceso infeccioso (temp. + resp. elevadas)",
+      r: "Reposo y hidratacion hoy. Resp. 14.1 rpm y temp. piel +0.4 C sugieren respuesta inflamatoria. No entrenes en este estado; si hay fiebre, consulta.",
+      c: C.rose },
+    { a: "Perdida de variabilidad (ApEn baja)",
+      r: "Tu HRV perdio complejidad: el cuerpo esta en modo 'sobrevivir'. Prioriza sueno profundo y respiracion lenta 10 min; evita estimulos fuertes.",
+      c: C.purple },
+  ];
+  ex.forEach((e, i) => {
+    const y = 1.95 + i * 1.42;
+    card(s, 0.6, y, 12.1, 1.28, C.card, C.border);
+    s.addText(e.a, { x: 0.85, y: y + 0.15, w: 11.6, h: 0.4, fontFace: F.head, fontSize: 13.5, bold: true, color: e.c, align: "left", margin: 0 });
+    s.addText(e.r, { x: 0.85, y: y + 0.58, w: 11.6, h: 0.65, fontFace: F.body, fontSize: 12.5, color: C.text, align: "left", lineSpacingMultiple: 1.1, margin: 0 });
+  });
+
+  card(s, 0.6, 6.25, 12.1, 1.0, C.cardAlt, C.teal);
+  s.addText([
+    { text: "POR QUE IMPORTA  ·  ", options: { fontFace: F.body, fontSize: 11, bold: true, color: C.teal, charSpacing: 1, breakLine: false } },
+    { text: "Whoop y Fitbit te dan el dato; BioPulse te da el 'por que' y el 'que hacer'. Cada recomendacion se compone con TUS metricas del dia (no un texto fijo), y el motor genera una alerta distinta por situacion. Eso convierte datos en comportamiento — donde esta el valor de mercado.", options: { fontFace: F.body, fontSize: 12.5, color: C.muted, lineSpacingMultiple: 1.15 } },
+  ], { x: 0.85, y: 6.35, w: 11.6, h: 0.8, align: "left", valign: "middle", margin: 0 });
+  footer(s, 15);
+}
+
+// ============================================================
+// SLIDE 15 — THE ASK
 // ============================================================
 {
   const s = pptx.addSlide();
