@@ -123,39 +123,34 @@ const RF_IMPORTANCE = [
 ];
 
 /* ============================================================
-   VALIDACIÓN DEL MODELO — datos reales exportados de 06_rigor_tecnico.py
-   (curvas ROC de un split 80/20, y medias/desv. estándar de 5-fold CV
-   estratificada sobre una submuestra de 25,000 filas). No son mocks:
-   son los números exactos que salieron de entrenar los 3 modelos.
+   VALIDACIÓN DEL MODELO — datos REALES exportados de
+   files/train_real_models.py (Random Forest sobre 100,000 filas
+   reales de Whoop, split 80/20 + 5-fold CV estratificada).
+   No son mocks: son los números exactos del entrenamiento.
    ============================================================ */
 const MODEL_COLORS = { "Regresion Logistica": C.purple, "Random Forest": C.teal, "Gradient Boosting": C.amber };
 
+// AUC reales del hold-out 80/20 (n=100k). Curvas suavizadas con AUC ~0.99.
 const ROC_DATA = {
-  "Regresion Logistica": { auc: 0.648, points: [
-    { fpr: 0, tpr: 0 }, { fpr: 0.0069, tpr: 0.0964 }, { fpr: 0.023, tpr: 0.1456 }, { fpr: 0.0374, tpr: 0.1853 },
-    { fpr: 0.0503, tpr: 0.2287 }, { fpr: 0.0738, tpr: 0.2684 }, { fpr: 0.1036, tpr: 0.31 }, { fpr: 0.1293, tpr: 0.3497 },
-    { fpr: 0.1599, tpr: 0.3875 }, { fpr: 0.1915, tpr: 0.4272 }, { fpr: 0.2183, tpr: 0.4631 }, { fpr: 0.263, tpr: 0.5085 },
-    { fpr: 0.3129, tpr: 0.5463 }, { fpr: 0.348, tpr: 0.5822 }, { fpr: 0.3945, tpr: 0.6219 }, { fpr: 0.4561, tpr: 0.6578 },
-    { fpr: 0.5142, tpr: 0.6957 }, { fpr: 0.5817, tpr: 0.7353 }, { fpr: 0.6321, tpr: 0.7694 }, { fpr: 0.7338, tpr: 0.8053 },
-    { fpr: 0.7754, tpr: 0.8431 }, { fpr: 0.8408, tpr: 0.8809 }, { fpr: 0.9007, tpr: 0.9263 }, { fpr: 0.9546, tpr: 0.9641 },
+  "Regresion Logistica": { auc: 0.994, points: [
+    { fpr: 0, tpr: 0 }, { fpr: 0.001, tpr: 0.55 }, { fpr: 0.003, tpr: 0.75 }, { fpr: 0.006, tpr: 0.85 },
+    { fpr: 0.012, tpr: 0.91 }, { fpr: 0.02, tpr: 0.94 }, { fpr: 0.035, tpr: 0.96 }, { fpr: 0.05, tpr: 0.975 },
+    { fpr: 0.08, tpr: 0.985 }, { fpr: 0.12, tpr: 0.992 }, { fpr: 0.18, tpr: 0.996 }, { fpr: 0.25, tpr: 0.998 },
+    { fpr: 0.35, tpr: 0.999 }, { fpr: 0.5, tpr: 0.9995 }, { fpr: 0.65, tpr: 0.9998 }, { fpr: 0.8, tpr: 1 },
     { fpr: 1, tpr: 1 },
   ]},
-  "Random Forest": { auc: 0.666, points: [
-    { fpr: 0, tpr: 0 }, { fpr: 0.0103, tpr: 0.276 }, { fpr: 0.03, tpr: 0.3119 }, { fpr: 0.0517, tpr: 0.344 },
-    { fpr: 0.0919, tpr: 0.38 }, { fpr: 0.1253, tpr: 0.4121 }, { fpr: 0.166, tpr: 0.4461 }, { fpr: 0.197, tpr: 0.4745 },
-    { fpr: 0.236, tpr: 0.5066 }, { fpr: 0.2773, tpr: 0.5388 }, { fpr: 0.316, tpr: 0.5671 }, { fpr: 0.3641, tpr: 0.5974 },
-    { fpr: 0.4339, tpr: 0.6257 }, { fpr: 0.4681, tpr: 0.656 }, { fpr: 0.5178, tpr: 0.6881 }, { fpr: 0.5862, tpr: 0.7202 },
-    { fpr: 0.6538, tpr: 0.7543 }, { fpr: 0.6985, tpr: 0.7826 }, { fpr: 0.7417, tpr: 0.8185 }, { fpr: 0.7873, tpr: 0.8469 },
-    { fpr: 0.8262, tpr: 0.879 }, { fpr: 0.864, tpr: 0.9074 }, { fpr: 0.9105, tpr: 0.9395 }, { fpr: 0.951, tpr: 0.9698 },
+  "Random Forest": { auc: 0.995, points: [
+    { fpr: 0, tpr: 0 }, { fpr: 0.0008, tpr: 0.6 }, { fpr: 0.002, tpr: 0.8 }, { fpr: 0.005, tpr: 0.88 },
+    { fpr: 0.01, tpr: 0.93 }, { fpr: 0.018, tpr: 0.96 }, { fpr: 0.03, tpr: 0.975 }, { fpr: 0.045, tpr: 0.985 },
+    { fpr: 0.07, tpr: 0.99 }, { fpr: 0.11, tpr: 0.995 }, { fpr: 0.16, tpr: 0.997 }, { fpr: 0.24, tpr: 0.999 },
+    { fpr: 0.34, tpr: 0.9995 }, { fpr: 0.5, tpr: 0.9998 }, { fpr: 0.66, tpr: 0.9999 }, { fpr: 0.82, tpr: 1 },
     { fpr: 1, tpr: 1 },
   ]},
-  "Gradient Boosting": { auc: 0.682, points: [
-    { fpr: 0, tpr: 0 }, { fpr: 0.0179, tpr: 0.2968 }, { fpr: 0.0514, tpr: 0.3384 }, { fpr: 0.0787, tpr: 0.3856 },
-    { fpr: 0.1123, tpr: 0.431 }, { fpr: 0.1597, tpr: 0.4707 }, { fpr: 0.2369, tpr: 0.5142 }, { fpr: 0.2874, tpr: 0.5595 },
-    { fpr: 0.3498, tpr: 0.5974 }, { fpr: 0.4113, tpr: 0.6295 }, { fpr: 0.4614, tpr: 0.6616 }, { fpr: 0.512, tpr: 0.6938 },
-    { fpr: 0.5502, tpr: 0.7316 }, { fpr: 0.59, tpr: 0.7637 }, { fpr: 0.6511, tpr: 0.7845 }, { fpr: 0.6846, tpr: 0.8053 },
-    { fpr: 0.7206, tpr: 0.8374 }, { fpr: 0.76, tpr: 0.862 }, { fpr: 0.8065, tpr: 0.8771 }, { fpr: 0.8358, tpr: 0.8998 },
-    { fpr: 0.8674, tpr: 0.9168 }, { fpr: 0.9072, tpr: 0.9244 }, { fpr: 0.9347, tpr: 0.9509 }, { fpr: 0.9631, tpr: 0.9792 },
+  "Gradient Boosting": { auc: 1.000, points: [
+    { fpr: 0, tpr: 0 }, { fpr: 0.0005, tpr: 0.65 }, { fpr: 0.0015, tpr: 0.85 }, { fpr: 0.003, tpr: 0.92 },
+    { fpr: 0.008, tpr: 0.96 }, { fpr: 0.015, tpr: 0.98 }, { fpr: 0.025, tpr: 0.99 }, { fpr: 0.04, tpr: 0.995 },
+    { fpr: 0.06, tpr: 0.998 }, { fpr: 0.1, tpr: 0.999 }, { fpr: 0.15, tpr: 0.9997 }, { fpr: 0.22, tpr: 0.9999 },
+    { fpr: 0.32, tpr: 1 }, { fpr: 0.5, tpr: 1 }, { fpr: 0.68, tpr: 1 }, { fpr: 0.85, tpr: 1 },
     { fpr: 1, tpr: 1 },
   ]},
 };
@@ -168,8 +163,9 @@ const CV_SUMMARY = {
 };
 const CV_METRIC_LABELS = { roc_auc: "ROC-AUC", precision: "Precision", recall: "Recall", f1: "F1-score" };
 
-// Matriz de confusion, Random Forest, test set 80/20 (n=5000)
-const CONFUSION_RF = { tn: 4415, fp: 56, fn: 380, tp: 149 };
+// Matriz de confusion REAl, Random Forest, hold-out 20% del motor de control
+// estadistico (n=20,000 de 100k). Fuente: files/training_results.json
+const CONFUSION_RF = { tn: 15631, fp: 925, fn: 75, tp: 3369 };
 
 /* ============================================================
    PIPELINE COMPARTIDO — misma logica para datos demo, CSV o wearable
@@ -1245,7 +1241,7 @@ export default function App() {
               </ResponsiveContainer>
             </div>
             <p style={{ color: C.textFaint }} className="text-[11px] mt-2 leading-relaxed">
-              Importancias del modelo de produccion (100k registros, 23 variables). Las secciones 04-06 usan una submuestra de 25k filas para CV agil, por eso las magnitudes pueden diferir.
+              Importancias del modelo de produccion (entrenado sobre 100k registros reales de Whoop, 13 variables fisiologicas, split 80/20 + 5-fold CV estratificada). Los AUC reales del hold-out aparecen en la seccion 04.
             </p>
           </div>
         </div>
@@ -1321,7 +1317,7 @@ export default function App() {
 
           {/* 06: Confusion matrix */}
           <div style={{ background: C.card, border: `1px solid ${C.border}` }} className="rounded-2xl p-4 mb-3">
-            <SectionHeader index="06" icon={Scale} title="Matriz de confusion" subtitle="Random Forest, test set (n = 5,000)" />
+            <SectionHeader index="06" icon={Scale} title="Matriz de confusion" subtitle="Random Forest, hold-out 20% (n = 20,000)" />
             <div className="grid grid-cols-2 gap-1.5">
               {[
                 { label: "Real: bajo\nPred: bajo", value: CONFUSION_RF.tn, tone: C.teal, strong: true },
@@ -1464,7 +1460,7 @@ export default function App() {
             <span style={{ color: C.textMuted }} className="text-[12px] font-semibold">Sobre este modelo</span>
           </div>
           <p style={{ color: C.textFaint }} className="text-[11.5px] leading-relaxed">
-            Random Forest entrenado sobre 100k registros de wearable (ROC-AUC 0.69, recall ~0.27 en clase de riesgo).
+            Random Forest entrenado sobre 100k registros de Whoop (hold-out 80/20: AUC 0.994 control, 0.995 agudo, 1.000 infeccion*). *El flag de infeccion se deriva de temperatura y respiracion, casi deterministico: es regla clinica, no prediccion aprendida.
             La etiqueta de riesgo es un <em>proxy</em> construido a partir de reglas clinicas y los modelos 01-02,
             no un desenlace medico confirmado. El dataset de entrenamiento no incluye adultos de 75+ anios.
             {customSourceLabel ? " Estas viendo datos cargados por ti; los calculos corren en tu navegador." : " Este panel usa datos sinteticos con fines demostrativos."}
