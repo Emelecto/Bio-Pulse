@@ -225,6 +225,25 @@ function buildRecommendations(today) {
       advice: `Riesgo ${today.riskScore}/100 supera tu umbral. Reduce carga 1–2 dias y revisa sueno (${sleep != null ? sleep + " h" : "objetivo 8 h"}) antes de volver a intensidad.`,
     });
   }
+  // Si NO hay alertas (dia en rango): coach POSITIVO que varia cada dia.
+  // Semilla deterministica = fecha del dia, asi el mismo dia repite mensaje
+  // pero cambia entre dias (evita que parezca estatico).
+  if (out.length === 0) {
+    const POSITIVE = [
+      { t: "Dia en tu rango", a: "Tus metricas estan dentro de lo habitual. Aprovecha para entrenar con intensidad moderate y consolidar tu linea base." },
+      { t: "Recuperacion sólida", a: "HRV y RHR estables hoy. Es un buen momento para carga de calidad: tu cuerpo tiene margen para adaptarse." },
+      { t: "Ritmo saludable", a: "Tu variabilidad fisiologica se mantiene. Manten tu rutina y vigila el sueno para cerrar la semana fuerte." },
+      { t: "Señal verde", a: "Sin desviaciones vs. tu base personal. Un dia asi es el momento de empujar un poco mas en el entrenamiento." },
+      { t: "Equilibrio encontrado", a: "Hoy no hay alertas: aprovecha para movimiento activo y una comida con buenos nutrientes para tu recuperacion." },
+      { t: "Buen momento para progresar", a: "Tu indice esta bajo y tus metricas coherentes. Si entrenas, este es un dia util para estimulo nuevo." },
+      { t: "Estabilidad", a: "Todo en rango. Usa este dia para reforzar habitos: hidratacion, sueno y movilidad ligera." },
+    ];
+    const seedStr = today.date || new Date().toISOString().slice(0, 10);
+    let h = 0;
+    for (let i = 0; i < seedStr.length; i++) h = (h * 31 + seedStr.charCodeAt(i)) >>> 0;
+    const pick = POSITIVE[h % POSITIVE.length];
+    out.push({ key: "positivo", title: pick.t, advice: pick.a });
+  }
   return out;
 }
 // estadistico (n=20,000 de 100k). Fuente: files/training_results.json
