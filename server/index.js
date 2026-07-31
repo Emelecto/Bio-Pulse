@@ -20,7 +20,7 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import { normalizeFitbit, normalizeWhoop } from "./normalize.js";
+import { normalizeFitbit, normalizeWhoop, normalizeGoogle } from "./normalize.js";
 
 dotenv.config();
 
@@ -49,6 +49,20 @@ const PROVIDERS = {
     tokenUrl: "https://api.prod.whoop.com/oauth/oauth2/token",
     scope: "read:recovery read:sleep read:cycles read:body_measurement",
     apiBase: "https://api.prod.whoop.com/developer",
+  },
+  // NOTA: Google Fit REST API esta en proceso de cierre/migracion a Health
+  // Connect (solo Android). Este proveedor es best-effort: usa los endpoints
+  // que aun responden. Si Google los apaga, /api/google/daily devolvera 4xx.
+  // El client_id debe ser de tipo "web" en Google Cloud Console y la API
+  // "Fitness API" debe estar habilitada en el proyecto.
+  google: {
+    clientId: process.env.GOOGLE_CLIENT_ID,
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    redirectUri: process.env.GOOGLE_REDIRECT_URI || "https://bio-pulse-six.vercel.app/callback/google",
+    authUrl: "https://accounts.google.com/o/oauth2/v2/auth",
+    tokenUrl: "https://oauth2.googleapis.com/token",
+    scope: "https://www.googleapis.com/auth/fitness.heart_rate.read https://www.googleapis.com/auth/fitness.sleep.read https://www.googleapis.com/auth/fitness.respiratory.read",
+    apiBase: "https://www.googleapis.com/fitness/v1",
   },
 };
 
@@ -130,6 +144,8 @@ app.get("/api/:provider/daily", async (req, res) => {
     let rows;
     if (req.params.provider === "fitbit") {
       rows = await fetchFitbitDaily(p, token, days);
+    } else if (req.params.provider === "google") {
+      rows = await fetchGoogleDaily(p, token, days);
     } else {
       rows = await fetchWhoopDaily(p, token, days);
     }
@@ -192,6 +208,37 @@ async function fetchWhoopDaily(p, token, days) {
     collect("/v2/cycle", "records"),
   ]);
   return normalizeWhoop({ recovery: { records: recovery }, sleep: { records: sleep }, cycles: { records: cycles } });
+}
+
+// Google Fit REST API (best-effort, en proceso de cierre).
+// Los datos de frecuencia cardiaca/sueño/respiracion se leen como "data sources"
+// + "dataset" con timestamps en nanosegundos. Se mapea al esquema canonico.
+async function fetchGoogleDaily(p, token, days) {
+  const endNs = Date.now() * 1e6;
+  const startNs = (Date.now() - days * 864e5) * 1e6;
+  const ds = (dataType) =>
+    `${p.apiBase}/users/me/dataSources?dataTypeName=${encodeURIComponent(dataType)}`;
+  const dataset = (srcId, agg) =>
+    `${p.apiBase}/users/me/dataSources/${encodeURIComponent(srcId)}/datasets/${startNs}-${endNs}` +
+    (agg ? `?limit=1&aggregateBy=${encodeURIComponent(JSON.stringify([{ dataTypeName: agg }]))}&bucketByTime=1d` : "");
+
+  // Descubrir data sources disponibles por tipo
+  const types = {
+    hrv: "com.google.heart_rate.variability.rmssd",
+    rhr: "com.google.heart_rate.bpm",
+    sleep: "com.google.sleep.segment",
+    resp: "com.google.respiratory.rate",
+  };
+  const sources = {};
+  for (const [k, t] of Object.entries(types)) {
+    try {
+      const j = await apiGet(ds(t), token);
+      sources[k] = j.dataSource || [];
+    } catch { sources[k] = []; }
+  }
+  // Google Fit no expone HRV/RHR/sueño como series diarias listas; esto es
+  // best-effort y puede devolver vacio si la API fue desactivada.
+  return normalizeGoogle({ sources, token, p, startNs, endNs, dataset });
 }
 
 app.listen(PORT, () => {

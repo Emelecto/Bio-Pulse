@@ -138,3 +138,28 @@ export function normalizeWhoop({ recovery, sleep, cycles }) {
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([date, v]) => buildRow(date, v));
 }
+
+// ------------------------------------------------------------
+// GOOGLE FIT (REST API, best-effort — en proceso de cierre)
+// Google Fit NO expone HRV/RHR/sueño como series diarias listas;
+// los datos vienen como "data sources" + "datasets" con timestamps en
+// nanosegundos. Este normalizador es defensivo: si no hay fuentes de
+// datos (API desactivada o sin permisos), devuelve [] y el backend
+// reporta 0 dias en vez de crashear.
+// ------------------------------------------------------------
+export function normalizeGoogle({ sources }) {
+  // Por ahora devolvemos arreglo vacio salvo que el caller haya resuelto
+  // los datasets. La resolucion de datasets por fuente es best-effort y
+  // depende de que Google Fit REST siga activa. Si hay fuentes de HR/RHR,
+  // se podria iterar; pero para no prometer datos que la API ya no da,
+  // dejamos el mapeo explicito y documentado en el README.
+  const hasHr = (sources?.rhr?.length || 0) > 0;
+  const hasHrv = (sources?.hrv?.length || 0) > 0;
+  const hasSleep = (sources?.sleep?.length || 0) > 0;
+  const hasResp = (sources?.resp?.length || 0) > 0;
+  // Sin fuentes -> sin filas (el backend lo reporta como 0 dias).
+  if (!hasHr && !hasHrv && !hasSleep && !hasResp) return [];
+  // Si hubiera fuentes, aqui se iterarian los datasets; lo dejamos como
+  // marcador de que el proveedor esta cableado pero la API puede no responder.
+  return [];
+}
