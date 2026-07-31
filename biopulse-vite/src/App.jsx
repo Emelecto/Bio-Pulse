@@ -226,23 +226,55 @@ function buildRecommendations(today) {
     });
   }
   // Si NO hay alertas (dia en rango): coach POSITIVO que varia cada dia.
-  // Semilla deterministica = fecha del dia, asi el mismo dia repite mensaje
-  // pero cambia entre dias (evita que parezca estatico).
+  // Si NO hay alertas (dia en rango): consejo del dia que varia en cada
+  // entrada a la app, pero COHERENTE con las metricas de hoy.
   if (out.length === 0) {
-    const POSITIVE = [
-      { t: "Dia en tu rango", a: "Tus metricas estan dentro de lo habitual. Aprovecha para entrenar con intensidad moderate y consolidar tu linea base." },
-      { t: "Recuperacion sólida", a: "HRV y RHR estables hoy. Es un buen momento para carga de calidad: tu cuerpo tiene margen para adaptarse." },
-      { t: "Ritmo saludable", a: "Tu variabilidad fisiologica se mantiene. Manten tu rutina y vigila el sueno para cerrar la semana fuerte." },
-      { t: "Señal verde", a: "Sin desviaciones vs. tu base personal. Un dia asi es el momento de empujar un poco mas en el entrenamiento." },
-      { t: "Equilibrio encontrado", a: "Hoy no hay alertas: aprovecha para movimiento activo y una comida con buenos nutrientes para tu recuperacion." },
-      { t: "Buen momento para progresar", a: "Tu indice esta bajo y tus metricas coherentes. Si entrenas, este es un dia util para estimulo nuevo." },
-      { t: "Estabilidad", a: "Todo en rango. Usa este dia para reforzar habitos: hidratacion, sueno y movilidad ligera." },
-    ];
-    const seedStr = today.date || new Date().toISOString().slice(0, 10);
-    let h = 0;
-    for (let i = 0; i < seedStr.length; i++) h = (h * 31 + seedStr.charCodeAt(i)) >>> 0;
-    const pick = POSITIVE[h % POSITIVE.length];
-    out.push({ key: "positivo", title: pick.t, advice: pick.a });
+    // Perfil del dia segun metricas reales (no texto fijo)
+    const goodHrv = hrv != null && hrv >= 55;
+    const lowSleep = sleep != null && sleep < 6.5;
+    const highStrain = strain != null && strain > 14;
+    const calmResp = resp != null && resp < 15;
+
+    // Bancos de tips por perfil; el titulo dice "Consejo del dia"
+    const BANKS = {
+      goodHrv: [
+        { a: "HRV alta hoy: tu cuerpo tiene margen. Es un buen dia para entrenamiento de calidad o estimulo nuevo." },
+        { a: "Tu variabilidad esta alta: aprovecha para carga intensa, tu sistema nervioso lo tolera bien." },
+        { a: "Buen dia de recuperacion: si entrenas, empuja un poco mas; hay base para adaptarte." },
+      ],
+      lowSleep: [
+        { a: "Sueno bajo esta noche: prioriza dormir temprano. Un dia asi pide menor carga, no mas." },
+        { a: "Pocas horas de sueno: enfocate en movilidad ligera y evita HIIT hasta recuperar." },
+        { a: "Sueno corto detectado: usa el dia para hidratacion y descanso activo, no para romper records." },
+      ],
+      highStrain: [
+        { a: "Mucha carga acumulada: programa una zona de recuperacion hoy, tu cuerpo lo agradecera." },
+        { a: "Strain elevado: baja la intensidad y prioriza sueno profundo para cerrar la brecha." },
+        { a: "Dia de alto esfuerzo: compensa con nutricion y estiramiento, no sumes fatiga." },
+      ],
+      calm: [
+        { a: "Resp. y HRV estables: senal de calma fisiologica. Aprovecha para movimiento consciente." },
+        { a: "Tu sistema esta tranquilo hoy: buen momento para tecnica o trabajo de precision." },
+        { a: "Ritmo calmado: aprovecha para consolidar habitos sans y sueno de calidad." },
+      ],
+      baseline: [
+        { a: "Dia en tu rango: manten tu rutina habitual y vigila el sueno para cerrar fuerte." },
+        { a: "Todo coherente con tu base: un dia asi es ideal para progresion suave." },
+        { a: "Metricas estables: refuerza habitos (hidratacion, sueno, movilidad) y disfruta el dia." },
+      ],
+    };
+    const profile = lowSleep ? "lowSleep" : highStrain ? "highStrain" : goodHrv ? "goodHrv" : calmResp ? "calm" : "baseline";
+    const bank = BANKS[profile];
+
+    // Indice rotativo por ENTRADA a la app (cambia cada vez que abres)
+    let rot = 0;
+    try {
+      const k = "biopulse_tip_rot";
+      rot = parseInt(sessionStorage.getItem(k) || "0", 10) || 0;
+      sessionStorage.setItem(k, String((rot + 1) % bank.length));
+    } catch { rot = Math.floor(Math.random() * bank.length); }
+    const pick = bank[rot % bank.length];
+    out.push({ key: "positivo", title: "Consejo del dia", advice: pick.a });
   }
   return out;
 }
