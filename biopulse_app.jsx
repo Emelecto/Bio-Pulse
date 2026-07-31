@@ -163,7 +163,70 @@ const CV_SUMMARY = {
 };
 const CV_METRIC_LABELS = { roc_auc: "ROC-AUC", precision: "Precision", recall: "Recall", f1: "F1-score" };
 
-// Matriz de confusion REAl, Random Forest, hold-out 20% del motor de control
+/* ============================================================
+   MOTOR DE RECOMENDACIONES ACCIONABLES Y PERSONALIZADAS
+   ------------------------------------------------------------
+   Cada alerta (flag) se empareja con un consejo especifico que
+   depende de LAS METRICAS QUE CAMBIARON en ese dia, no de un texto
+   fijo. Asi el usuario recibe "que hacer" distinto por situacion:
+   - fatiga aguda (HRV/RHR) -> reducir carga
+   - proceso infeccioso (temp/resp) -> reposo y vigilancia
+   - control estadistico (N metricas fuera de rango) -> contexto
+   - ApEn (rigidez ritmica) -> recuperacion activa
+   El consejo se compone dinamicamente con los valores del dia.
+   ============================================================ */
+function buildRecommendations(today) {
+  const out = [];
+  const f = today.flags || [];
+  const hrv = today.hrv, rhr = today.rhr, sleep = today.sleepHours, resp = today.resp, strain = today.dayStrain;
+
+  const has = (sub) => f.some((x) => x.toLowerCase().includes(sub.toLowerCase()));
+
+  if (has("fatiga aguda")) {
+    const bits = [];
+    if (hrv != null) bits.push(`HRV en ${hrv} ms (baja)`);
+    if (rhr != null) bits.push(`RHR en ${rhr} bpm (elevada)`);
+    out.push({
+      key: "agudo",
+      title: "Fatiga aguda detectada",
+      advice: `Baja la carga de entrenamiento 24–48 h. ${bits.join(" y ")} senalan recuperacion insuficiente. Duerme 8 h y evita HIIT hasta que la HRV repunte.`,
+    });
+  }
+  if (has("proceso infeccioso")) {
+    const bits = [];
+    if (resp != null) bits.push(`resp. ${resp} rpm`);
+    if (today.skinTemp != null) bits.push(`temp. piel ${today.skinTemp > 0 ? "+" : ""}${today.skinTemp} °C`);
+    out.push({
+      key: "infeccion",
+      title: "Posible proceso infeccioso",
+      advice: `Reposo y hidratacion hoy. ${bits.join(", ")} sugieren respuesta inflamatoria. Si aparece fiebre o empeoras en 24 h, consulta. No entrenes en este estado.`,
+    });
+  }
+  if (has("fuera de tu rango") || has("metricas fuera")) {
+    const n = (today.anomalyCount != null) ? today.anomalyCount : "varias";
+    out.push({
+      key: "rango",
+      title: `${n} metricas fuera de tu rango habitual`,
+      advice: `No es una alerta medica: es desviacion vs. tu propia linea base. Vigila tendencia 48 h; si persiste, ajusta sueno y estres. El indice baja solo al recuperar tu rango.`,
+    });
+  }
+  if (has("variabilidad fisiologica") || has("apEn")) {
+    out.push({
+      key: "apen",
+      title: "Ritmo mas rigido de lo normal",
+      advice: `Tu HRV perdio complejidad (entropia baja): el cuerpo esta en modo "sobrevivir", no "adaptar". Prioriza sueno profundo y respiracion lenta 10 min; evita estimulos fuertes.`,
+    });
+  }
+  // Si hay alerta de riesgo pero ningun flag concreto, consejo generico contextual
+  if (out.length === 0 && today.riskScore >= (today.threshold || 30)) {
+    out.push({
+      key: "umbral",
+      title: "Indice sobre tu umbral",
+      advice: `Riesgo ${today.riskScore}/100 supera tu umbral. Reduce carga 1–2 dias y revisa sueno (${sleep != null ? sleep + " h" : "objetivo 8 h"}) antes de volver a intensidad.`,
+    });
+  }
+  return out;
+}
 // estadistico (n=20,000 de 100k). Fuente: files/training_results.json
 const CONFUSION_RF = { tn: 15631, fp: 925, fn: 75, tp: 3369 };
 
@@ -974,9 +1037,12 @@ export default function App() {
   const history = data.slice(-historyRange);
   const rangeAvg = Math.round(history.reduce((a, d) => a + d.riskScore, 0) / Math.max(1, history.length));
   const alertActive = today.riskScore >= riskThreshold;
-  // Recomendación accionable basada en los flags del día
+  // Recomendaciones accionables y PERSONALIZADAS (una por alerta, segun
+  // las metricas que cambiaron). No es un texto fijo: buildRecommendations
+  // compone el consejo con los valores reales del dia.
+  const recommendations = buildRecommendations({ ...today, threshold: riskThreshold });
   const recommendation = alertActive
-    ? (today.flags[0] || "Tu indice de riesgo supera tu umbral. Considera descanso y vigila tus metricas.")
+    ? (recommendations[0]?.advice || "Tu indice de riesgo supera tu umbral. Considera descanso y vigila tus metricas.")
     : "Estas dentro de tu rango. Manten tu rutina habitual.";
 
   const sourcePillLabel = customSourceLabel ? customSourceLabel : "Datos demo";
@@ -1059,16 +1125,35 @@ export default function App() {
                   {today.riskLevel === "BAJO" ? "Tus metricas estan dentro de tu rango habitual." : "Detectamos señales fuera de tu rango habitual en los ultimos dias."}
                 </p>
                 {today.flags.length > 0 && (
-                  <div className="mt-2 flex items-start gap-1.5">
-                    <AlertTriangle size={13} style={{ color: C.amber }} className="mt-0.5 shrink-0" />
-                    <span style={{ color: C.amber }} className="text-[12px] leading-snug">{today.flags[0]}</span>
+                  <div className="mt-2 space-y-1">
+                    {today.flags.map((fl, i) => (
+                      <div key={i} className="flex items-start gap-1.5">
+                        <AlertTriangle size={13} style={{ color: C.amber }} className="mt-0.5 shrink-0" />
+                        <span style={{ color: C.amber }} className="text-[12px] leading-snug">{fl}</span>
+                      </div>
+                    ))}
                   </div>
                 )}
-                {/* Recomendación accionable */}
-                <div className="mt-2 flex items-start gap-1.5">
-                  <Info size={13} style={{ color: C.teal }} className="mt-0.5 shrink-0" />
-                  <span style={{ color: C.text }} className="text-[12px] leading-snug">{recommendation}</span>
-                </div>
+                {/* Recomendaciones accionables PERSONALIZADAS (una por alerta) */}
+                {recommendations.length > 0 && (
+                  <div className="mt-3 space-y-2">
+                    {recommendations.map((rec) => (
+                      <div key={rec.key} className="flex items-start gap-1.5 rounded-lg p-2" style={{ background: "rgba(155,168,242,0.08)", border: `1px solid ${C.border}` }}>
+                        <Info size={13} style={{ color: C.teal }} className="mt-0.5 shrink-0" />
+                        <div>
+                          <span style={{ color: C.teal }} className="text-[12px] font-semibold leading-snug block">{rec.title}</span>
+                          <span style={{ color: C.text }} className="text-[12px] leading-snug block">{rec.advice}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {recommendations.length === 0 && (
+                  <div className="mt-2 flex items-start gap-1.5">
+                    <Info size={13} style={{ color: C.teal }} className="mt-0.5 shrink-0" />
+                    <span style={{ color: C.text }} className="text-[12px] leading-snug">{recommendation}</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
