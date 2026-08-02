@@ -5,7 +5,7 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { Moon, Footprints, Flame, Heart, Wind, BatteryMedium, Activity, AlertTriangle, Info, Settings2, Sparkles } from "lucide-react";
 import { C, riskColor, RiskGauge, PulseRibbon, MetricCard, SectionHeader } from "./ui.jsx";
-import { getCoachAdvice } from "../coach/coachEngine.js";
+import { getLocalAdvice } from "../coach/coachEngine.js";
 
 // Métricas que el usuario puede poner en el medidor principal.
 const PRIMARY_OPTIONS = [
@@ -30,24 +30,37 @@ export default function Dashboard({ data, today, riskThreshold, onOpenSettings, 
   const [visibleSecondary, setVisibleSecondary] = useState(SECONDARY_METRICS.map((m) => m.key));
 
   // COACH: consejo coherente con métricas, rota al entrar, usa LLM si hay backend.
-  const [advice, setAdvice] = useState(null);
+  // Inicializa SINCRONICAMENTE con el banco local para que SIEMPRE se vea al instante;
+  // luego (opcional) lo mejora con el LLM (Gemini) si responde a tiempo.
+  const [advice, setAdvice] = useState(() => getLocalAdvice(today));
   useEffect(() => {
     let alive = true;
-    getCoachAdvice(today, {
-      callLLM: async (t) => {
-        try {
-          const base = import.meta.env.VITE_COACH_API || "/api/coach";
-          const res = await fetch(base, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ metrics: t }),
+    const enhance = async () => {
+      try {
+        const base = import.meta.env.VITE_COACH_API || "/api/coach";
+        const ctrl = new AbortController();
+        const to = setTimeout(() => ctrl.abort(), 4000); // nunca se cuelga
+        const res = await fetch(base, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ metrics: today }),
+          signal: ctrl.signal,
+        });
+        clearTimeout(to);
+        if (!res.ok) return;
+        const j = await res.json();
+        if (j && j.advice && j.advice.length > 10 && alive) {
+          const [title, ...rest] = j.advice.split("||");
+          setAdvice({
+            profile: advice?.profile || "diaBueno",
+            title: (title || "Coach BioPulse").trim().slice(0, 60),
+            advice: (rest.join("||") || j.advice).trim(),
+            source: "llm",
           });
-          if (!res.ok) throw new Error("no llm");
-          const j = await res.json();
-          return j.advice;
-        } catch { return null; }
-      },
-    }).then((a) => alive && setAdvice(a));
+        }
+      } catch { /* silencioso: se queda el local */ }
+    };
+    enhance();
     return () => { alive = false; };
   }, [today]);
 
