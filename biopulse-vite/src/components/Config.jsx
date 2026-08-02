@@ -66,13 +66,13 @@ export default function Config({ data, hook }) {
           Conecta tu wearable o sube un CSV. Las API keys se guardan solo en este dispositivo (localStorage). En producción, el backend (Vercel Function) guarda el token y consulta la API de forma segura.
         </p>
         <div className="flex gap-2">
-          <button onClick={() => { setActiveTab("wearable"); setShowModal(true); }} style={{ background: C.bgSoft, border: `1px solid ${C.border}` }} className="flex-1 text-xs font-medium py-2.5 rounded-xl flex items-center justify-center gap-1.5">
+          <button onClick={() => { setActiveTab("wearable"); setShowModal(true); }} style={{ background: C.teal, color: C.bg, border: `1px solid ${C.teal}` }} className="flex-1 text-xs font-semibold py-2.5 rounded-xl flex items-center justify-center gap-1.5">
             <Link2 size={13} /> Wearable
           </button>
-          <button onClick={() => { setActiveTab("csv"); setShowModal(true); }} style={{ background: C.bgSoft, border: `1px solid ${C.border}` }} className="flex-1 text-xs font-medium py-2.5 rounded-xl flex items-center justify-center gap-1.5">
+          <button onClick={() => { setActiveTab("csv"); setShowModal(true); }} style={{ background: C.teal, color: C.bg, border: `1px solid ${C.teal}` }} className="flex-1 text-xs font-semibold py-2.5 rounded-xl flex items-center justify-center gap-1.5">
             <Upload size={13} /> Subir CSV
           </button>
-          <button onClick={onUseDemo} style={{ background: C.bgSoft, border: `1px solid ${C.border}` }} className="flex-1 text-xs font-medium py-2.5 rounded-xl flex items-center justify-center gap-1.5">
+          <button onClick={onUseDemo} style={{ background: C.teal, color: C.bg, border: `1px solid ${C.teal}` }} className="flex-1 text-xs font-semibold py-2.5 rounded-xl flex items-center justify-center gap-1.5">
             <Database size={13} /> Demo
           </button>
         </div>
