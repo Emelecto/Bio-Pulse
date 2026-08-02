@@ -1,19 +1,31 @@
 // ============================================================
-// hooks/useAuth.js — estado de sesion con Supabase (auth real).
-// Si supabaseClient existe: usa signUp/signInWithPassword/signOut
-// y escucha cambios de sesion. Si no: fallback a mock local (estado
-// en memoria) para no romper la app antes de configurar credenciales.
+// hooks/useAuth.js — auth real con Supabase (email/password,
+// confirmacion por correo, reset de password, OAuth Google) con
+// fallback a mock local si no hay credenciales. Errores traducidos.
 // ============================================================
 import { useState, useEffect } from "react";
 import { supabaseClient, supabaseEnabled } from "../lib/supabase.js";
+
+// Traduce mensajes cripticos de Supabase a espanol claro.
+function translateError(msg = "") {
+  if (/user already registered/i.test(msg)) return "Ese correo ya tiene una cuenta. Inicia sesión.";
+  if (/invalid login credentials/i.test(msg)) return "Correo o contraseña incorrectos.";
+  if (/password should be at least/i.test(msg)) return "La contraseña debe tener al menos 6 caracteres.";
+  if (/email not confirmed/i.test(msg)) return "Aún no has verificado tu correo. Revisa tu bandeja y haz clic en el enlace.";
+  if (/unable to validate email/i.test(msg)) return "El correo no tiene un formato válido.";
+  if (/for security purposes/i.test(msg)) return "Demasiados intentos. Espera un momento e inténtalo de nuevo.";
+  if (/user not found/i.test(msg)) return "No existe una cuenta con ese correo.";
+  return msg || "Ocurrió un error. Inténtalo de nuevo.";
+}
 
 export function useAuth() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [mode, setMode] = useState(supabaseEnabled ? "supabase" : "mock");
+  const [info, setInfo] = useState(null); // mensajes no-error (ej. reset enviado)
+  const [needsConfirmation, setNeedsConfirmation] = useState(false);
+  const isReal = supabaseEnabled;
 
-  // Escuchar cambios de sesion (Supabase) o restaurar mock.
   useEffect(() => {
     if (supabaseEnabled && supabaseClient) {
       supabaseClient.auth.getSession().then(({ data }) => {
@@ -27,41 +39,78 @@ export function useAuth() {
   }, []);
 
   const signUp = async (email, password) => {
-    setError(null); setLoading(true);
+    setError(null); setLoading(true); setNeedsConfirmation(false); setInfo(null);
     try {
-      if (mode === "supabase" && supabaseClient) {
-        const { error } = await supabaseClient.auth.signUp({ email, password });
-        if (error) { setError(error.message); return false; }
+      if (isReal && supabaseClient) {
+        const { data, error } = await supabaseClient.auth.signUp({ email, password });
+        if (error) { setError(translateError(error.message)); return false; }
+        // Si Supabase NO abre sesion automaticamente => pide confirmar correo.
+        if (!data.session) {
+          setNeedsConfirmation(true);
+          return "confirm";
+        }
         return true;
       }
-      // mock
-      setUser({ email, name: email.split("@")[0] });
-      return true;
-    } catch (e) { setError(e.message); return false; }
+      // mock: simula flujo de confirmacion para consistencia visual
+      setNeedsConfirmation(true);
+      return "confirm";
+    } catch (e) { setError(translateError(e.message)); return false; }
     finally { setLoading(false); }
   };
 
   const signIn = async (email, password) => {
-    setError(null); setLoading(true);
+    setError(null); setLoading(true); setNeedsConfirmation(false); setInfo(null);
     try {
-      if (mode === "supabase" && supabaseClient) {
+      if (isReal && supabaseClient) {
         const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
-        if (error) { setError(error.message); return false; }
+        if (error) { setError(translateError(error.message)); return false; }
         return true;
       }
-      // mock
       setUser({ email, name: email.split("@")[0] });
       return true;
-    } catch (e) { setError(e.message); return false; }
+    } catch (e) { setError(translateError(e.message)); return false; }
+    finally { setLoading(false); }
+  };
+
+  const signInWithGoogle = async () => {
+    setError(null); setLoading(true); setInfo(null);
+    try {
+      if (isReal && supabaseClient) {
+        const { error } = await supabaseClient.auth.signInWithOAuth({
+          provider: "google",
+          options: { redirectTo: window.location.origin },
+        });
+        if (error) { setError(translateError(error.message)); return false; }
+        return true; // redirige a Google
+      }
+      setError("Login con Google no disponible en modo demo.");
+      return false;
+    } catch (e) { setError(translateError(e.message)); return false; }
+    finally { setLoading(false); }
+  };
+
+  const resetPassword = async (email) => {
+    setError(null); setLoading(true); setInfo(null);
+    try {
+      if (isReal && supabaseClient) {
+        const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+          redirectTo: window.location.origin + "/ajustes",
+        });
+        if (error) { setError(translateError(error.message)); return false; }
+        setInfo("Te enviamos un enlace a tu correo para restablecer la contraseña.");
+        return true;
+      }
+      setInfo("Te enviamos un enlace a tu correo para restablecer la contraseña.");
+      return true;
+    } catch (e) { setError(translateError(e.message)); return false; }
     finally { setLoading(false); }
   };
 
   const signOut = async () => {
-    if (mode === "supabase" && supabaseClient) {
-      await supabaseClient.auth.signOut();
-    }
+    setError(null); setInfo(null); setNeedsConfirmation(false);
+    if (isReal && supabaseClient) await supabaseClient.auth.signOut();
     setUser(null);
   };
 
-  return { user, loading, error, signUp, signIn, signOut, isReal: mode === "supabase" };
+  return { user, loading, error, info, needsConfirmation, signUp, signIn, signInWithGoogle, resetPassword, signOut, isReal };
 }
