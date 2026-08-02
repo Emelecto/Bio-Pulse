@@ -59,11 +59,11 @@ export default function Technical() {
         <ResponsiveContainer width="100%" height={190}>
           <LineChart data={roc.points} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke={C.borderSoft} />
-            <XAxis type="number" domain={[0, 1]} tick={{ fill: C.textFaint, fontSize: 10 }} />
+            <XAxis type="number" dataKey="fpr" domain={[0, 1]} tick={{ fill: C.textFaint, fontSize: 10 }} />
             <YAxis domain={[0, 1]} tick={{ fill: C.textFaint, fontSize: 10 }} />
             <Tooltip content={<ChartTooltip />} />
             <ReferenceLine y={0.5} stroke={C.border} strokeDasharray="4 4" />
-            <Line type="monotone" dataKey="tpr" stroke={MODEL_COLORS[model]} strokeWidth={2.5} dot={false} />
+            <Line type="monotone" dataKey="tpr" stroke={MODEL_COLORS[model]} strokeWidth={2.5} dot={{ r: 2 }} activeDot={{ r: 4 }} />
           </LineChart>
         </ResponsiveContainer>
       </div>
