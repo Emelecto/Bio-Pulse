@@ -6,7 +6,8 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "dev": "node index.js"
+    "dev": "node index.js",
+    "build": "echo 'serverless function: no build needed'"
   },
   "dependencies": {
     "@google/generative-ai": "^0.21.0",
