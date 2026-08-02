@@ -5,7 +5,7 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { Moon, Footprints, Flame, Heart, Wind, BatteryMedium, Activity, AlertTriangle, Info, Settings2, Sparkles } from "lucide-react";
 import { C, riskColor, RiskGauge, PulseRibbon, MetricCard, SectionHeader } from "./ui.jsx";
-import { getLocalAdvice } from "../coach/coachEngine.js";
+import { getLocalAdvice, getLocalReply } from "../coach/coachEngine.js";
 
 // Métricas que el usuario puede poner en el medidor principal.
 const PRIMARY_OPTIONS = [
@@ -38,6 +38,7 @@ export default function Dashboard({ data, today, riskThreshold, onOpenSettings, 
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState(null); // errores/limites
+  const [aiConnected, setAiConnected] = useState(false); // Gemini activo?
 
   // Mejora el primer mensaje con Gemini si responde a tiempo (sin bloquear UI).
   useEffect(() => {
@@ -59,6 +60,7 @@ export default function Dashboard({ data, today, riskThreshold, onOpenSettings, 
         if (j && j.advice && j.advice.length > 10 && alive) {
           const [title, ...rest] = j.advice.split("||");
           setMessages([{ role: "coach", text: (title ? title.trim() + ". " : "") + (rest.join("||") || j.advice).trim(), source: "llm" }]);
+          setAiConnected(true);
         }
       } catch { /* silencioso: se queda el local */ }
     };
@@ -92,14 +94,15 @@ export default function Dashboard({ data, today, riskThreshold, onOpenSettings, 
       else if (res.status === 400 && j.error) { setNotice(j.error); }
       else if (j && j.reply && j.reply.length > 0) {
         setMessages((m) => [...m, { role: "coach", text: j.reply, source: j.source }]);
+        if (j.source === "gemini") setAiConnected(true);
       } else {
-        // Fallback local: usa el banco de consejos.
-        const fb = getLocalAdvice(today);
-        setMessages((m) => [...m, { role: "coach", text: fb.advice, source: "local" }]);
+        // Fallback local: usa el banco de consejos coherente con la pregunta + perfil.
+        const fb = getLocalReply(today, text);
+        setMessages((m) => [...m, { role: "coach", text: fb, source: "local" }]);
       }
     } catch {
-      const fb = getLocalAdvice(today);
-      setMessages((m) => [...m, { role: "coach", text: fb.advice, source: "local" }]);
+      const fb = getLocalReply(today, text);
+      setMessages((m) => [...m, { role: "coach", text: fb, source: "local" }]);
     } finally {
       setBusy(false);
     }
@@ -161,7 +164,10 @@ export default function Dashboard({ data, today, riskThreshold, onOpenSettings, 
           </div>
           <div>
             <span style={{ color: C.text }} className="text-sm font-semibold block">Coach BioPulse</span>
-            <span style={{ color: C.textFaint }} className="text-[10px]">Asistente de IA · experto en tus métricas</span>
+            <span style={{ color: aiConnected ? C.teal : C.textFaint }} className="text-[10px] flex items-center gap-1">
+              <span style={{ width: 6, height: 6, borderRadius: 999, background: aiConnected ? C.teal : C.textFaint, display: "inline-block" }} />
+              {aiConnected ? "IA conectada (Gemini)" : "Modo local · añade GOOG.le.ai API key para IA"}
+            </span>
           </div>
         </div>
 

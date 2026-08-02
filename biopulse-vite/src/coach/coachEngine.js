@@ -54,6 +54,33 @@ export function getLocalAdvice(today) {
   return { profile, title: pick.t, advice: pick.a, source: "local" };
 }
 
+// Fallback local para CHAT: elige un tip coherente con la PREGUNTA del usuario
+// (palabras clave) y con el perfil del dia. Asi, sin API key, el coach sigue
+// pareciendo personalizado en lugar de soltar tips al azar.
+const KEYWORD_BANK = [
+  { keys: ["sauna", "baño", "calor", "contraste"], bank: "recuperacionBuena" },
+  { keys: ["dormir", "sueño", "sleep", "descansar", "insomnio"], bank: "suenoMalo" },
+  { keys: ["entren", "entrenar", "gimnasio", "correr", "run", "fuerza", "pesas"], bank: "fatigaAguda" },
+  { keys: ["estres", "ansiedad", "estrés", "ansios"], bank: "estresAlto" },
+  { keys: ["hrv", "variabilidad"], bank: "hrvBaja" },
+  { keys: ["rhr", "frecuencia cardiaca", "descanso"], bank: "rhrAlta" },
+  { keys: ["hidrat", "agua", "beber"], bank: "hidratacion" },
+  { keys: ["calor", "verano", "temperatura"], bank: "calor" },
+  { keys: ["motiv", "ánimo", "animo", "comenzar"], bank: "motivacion" },
+];
+export function getLocalReply(today, question) {
+  const profile = selectCoachProfile(today);
+  let bankKey = profile;
+  const q = (question || "").toLowerCase();
+  for (const kb of KEYWORD_BANK) {
+    if (kb.keys.some((k) => q.includes(k))) { bankKey = kb.bank; break; }
+  }
+  const bank = COACH_BANKS[bankKey] || COACH_BANKS[profile] || COACH_BANKS.diaBueno;
+  const idx = rotationIndex(bank.length, "biopulse_coach_chat_" + bankKey);
+  const pick = bank[idx];
+  return pick ? pick.a : "Pregúntame sobre tus métricas de hoy.";
+}
+
 // Interfaz para LLM real. `callLLM` es async (inyectado desde el backend/
 // funcion serverless). Si no hay o falla, cae a bancos locales.
 export async function getCoachAdvice(today, { callLLM } = {}) {
