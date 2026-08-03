@@ -25,8 +25,9 @@ const norm = (s) => String(s).toLowerCase().trim().replace(/[_-]+/g, " ").replac
 function autoDetectMapping(headers) {
   const mapping = {};
   FIELD_DEFS.forEach(({ key, synonyms }) => {
-    const hit = headers.find((h) => synonyms.includes(norm(h))) ||
-      headers.find((h) => synonyms.some((s) => norm(h).includes(s)));
+    const norms = synonyms.map(norm);
+    const hit = headers.find((h) => norms.includes(norm(h))) ||
+      headers.find((h) => norms.some((s) => norm(h).includes(s) || s.includes(norm(h))));
     mapping[key] = hit || "";
   });
   return mapping;
