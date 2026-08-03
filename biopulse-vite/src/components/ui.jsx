@@ -4,12 +4,24 @@
 // ============================================================
 import React from "react";
 
-export const C = {
+export const C_DARK = {
   bg: "#0A1420", bgSoft: "#0D1926", card: "#101F30", cardAlt: "#0D1B2A",
   border: "#1D3348", borderSoft: "#152840",
   teal: "#4FD8C4", amber: "#F2B84B", rose: "#F0687A", purple: "#9BA8F2",
   text: "#EAF2F5", textMuted: "#8AA0B2", textFaint: "#4C6377",
 };
+export const C_LIGHT = {
+  bg: "#F4F8FB", bgSoft: "#FFFFFF", card: "#FFFFFF", cardAlt: "#EEF4F8",
+  border: "#D8E3EC", borderSoft: "#E6EEF4",
+  teal: "#0FA697", amber: "#C77B12", rose: "#D63A55", purple: "#5B68D8",
+  text: "#0E2233", textMuted: "#4A6175", textFaint: "#8197A8",
+};
+export const C = { ...C_DARK };
+// Mutacion en runtime: todos los componentes importan el MISMO objeto C,
+// asi que al reasignar sus props ven la paleta activa al re-renderizar.
+export function applyTheme(theme) {
+  Object.assign(C, theme === "light" ? C_LIGHT : C_DARK);
+}
 export const riskColor = (level) =>
   level === "ALTO" ? C.rose : level === "MODERADO" ? C.amber : C.teal;
 export const MONTHS = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];

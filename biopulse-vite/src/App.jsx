@@ -6,6 +6,7 @@
 import React, { useState } from "react";
 import { Activity, ChevronRight, FileText, Database, Settings2 } from "lucide-react";
 import { C, GLOBAL_STYLE } from "./components/ui.jsx";
+import { ThemeProvider } from "./lib/theme.jsx";
 import { useBiopulseData } from "./hooks/useBiopulseData.js";
 import TabBar from "./components/TabBar.jsx";
 import DataSourceModal from "./components/DataSourceModal.jsx";
@@ -32,6 +33,7 @@ export default function App() {
   const sourcePillLabel = customSourceLabel ? customSourceLabel : "Datos demo";
 
   return (
+    <ThemeProvider>
     <div style={{ background: C.bg, minHeight: "100vh", fontFamily: "'Manrope', sans-serif" }}>
       <style>{GLOBAL_STYLE}</style>
 
@@ -87,5 +89,6 @@ export default function App() {
         />
       )}
     </div>
+    </ThemeProvider>
   );
 }

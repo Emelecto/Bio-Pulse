@@ -6,6 +6,7 @@ import React, { useState } from "react";
 import { User, Key, Upload, Database, Trash2, RefreshCw, AlertTriangle, Link2, Mail, CheckCircle2 } from "lucide-react";
 import { C } from "./ui.jsx";
 import { useAuth } from "../hooks/useAuth.js";
+import { useTheme } from "../lib/theme.jsx";
 
 export default function Config({ data, hook }) {
   const {
@@ -15,6 +16,7 @@ export default function Config({ data, hook }) {
   } = hook;
 
   const auth = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const [email, setEmail] = useState("");
   const [pass, setPass] = useState("");
   const [view, setView] = useState("choice"); // choice | login | signup
@@ -129,6 +131,33 @@ export default function Config({ data, hook }) {
             <span style={{ color: C.teal }} className="text-[11px]">{auth.info}</span>
           </div>
         )}
+      </div>
+
+      {/* APARIENCIA / TEMA */}
+      <div style={{ background: C.card, border: `1px solid ${C.border}` }} className="rounded-3xl p-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span style={{ color: C.text }} className="text-sm font-semibold">Tema</span>
+          </div>
+          <button
+            onClick={toggleTheme}
+            role="switch"
+            aria-checked={theme === "light"}
+            aria-label="Cambiar entre tema claro y oscuro"
+            style={{ background: theme === "light" ? C.teal : C.borderSoft, border: `1px solid ${theme === "light" ? C.teal : C.border}` }}
+            className="relative w-14 h-8 rounded-full transition-colors duration-300 flex items-center px-1"
+          >
+            <span
+              style={{ background: theme === "light" ? C.bg : C.teal, transform: theme === "light" ? "translateX(24px)" : "translateX(0)" }}
+              className="w-6 h-6 rounded-full shadow transition-transform duration-300 flex items-center justify-center text-[10px]"
+            >
+              {theme === "light" ? "☀" : "☾"}
+            </span>
+          </button>
+        </div>
+        <p style={{ color: C.textFaint }} className="text-[11px] mt-2">
+          {theme === "light" ? "Modo claro activado." : "Modo oscuro activado."}
+        </p>
       </div>
 
       {/* CONECTAR DATOS */}

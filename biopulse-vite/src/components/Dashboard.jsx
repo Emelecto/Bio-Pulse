@@ -4,7 +4,7 @@
 // ============================================================
 import React, { useMemo, useState, useEffect } from "react";
 import { Moon, Footprints, Flame, Heart, Wind, BatteryMedium, Activity, AlertTriangle, Info, Settings2, Sparkles } from "lucide-react";
-import { C, riskColor, PulseRibbon, MetricCard, SectionHeader } from "./ui.jsx";
+import { C, riskColor, MetricCard, SectionHeader } from "./ui.jsx";
 import DigitalTwinRing from "./DigitalTwinRing.jsx";
 import { getLocalAdvice, getLocalReply } from "../coach/coachEngine.js";
 
@@ -123,10 +123,7 @@ export default function Dashboard({ data, today, riskThreshold, onOpenSettings, 
     <div className="flex flex-col gap-5">
       {/* HERO: medidor principal configurable */}
       <div style={{ background: `linear-gradient(160deg, ${C.card}, ${C.bgSoft})`, border: `1px solid ${C.border}` }} className="rounded-3xl p-5 pt-4 relative overflow-hidden">
-        <div className="absolute top-0 left-0 right-0 opacity-70">
-          <PulseRibbon values={data.slice(-30).map((d) => d.hrv)} />
-        </div>
-        <div className="relative pt-4 flex items-center justify-between mb-1">
+        <div className="relative flex items-center justify-between mb-1">
           <button onClick={onOpenSettings} style={{ color: C.textFaint }} className="flex items-center gap-1 text-[11px] uppercase tracking-wider font-medium">
             <Settings2 size={11} /> {primaryDef.label}
           </button>
