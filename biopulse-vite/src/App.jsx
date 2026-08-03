@@ -16,8 +16,11 @@ import Sleep from "./components/Sleep.jsx";
 import Config from "./components/Config.jsx";
 import Technical from "./components/Technical.jsx";
 
-export default function App() {
-  const { theme } = useTheme(); // consume contexto para forzar re-render global al cambiar tema
+// AppInner vive DENTRO del ThemeProvider: asi useTheme() lee el contexto real
+// y re-renderiza toda la app (y todos los tabs) al cambiar el tema, haciendo
+// que el toggle claro/oscuro se vea de inmediato (sin salir de Config).
+function AppInner() {
+  const { theme } = useTheme(); // consume contexto REAL -> re-render global al cambiar tema
   const hook = useBiopulseData();
   const {
     customData, demoData, customSourceLabel, historyRange, setHistoryRange,
@@ -34,7 +37,6 @@ export default function App() {
   const sourcePillLabel = customSourceLabel ? customSourceLabel : "Datos demo";
 
   return (
-    <ThemeProvider>
     <div style={{ background: C.bg, minHeight: "100vh", fontFamily: "'Manrope', sans-serif" }}>
       <style>{GLOBAL_STYLE}</style>
 
@@ -68,14 +70,20 @@ export default function App() {
         <DataSourceModal
           onClose={() => setShowModal(false)} activeTab={activeTab} setActiveTab={setActiveTab}
           connections={connections} setConnections={setConnections} syncStatus={syncStatus} setSyncStatus={setSyncStatus}
-          onCsvFile={handleCsvFile} csvHeaders={csvHeaders} csvMapping={csvMapping} setCsvMapping={setCsvMapping}
-          csvError={csvError} csvFileName={csvFileName} csvRowCount={csvRowCount}
+          onCsvFile={handleCsvFile} csvHeaders={csvHeaders} csvMapping={setCsvMapping} csvError={csvError} csvFileName={csvFileName} csvRowCount={csvRowCount}
           onConfirmCsv={confirmCsv} onUseDemo={() => { setShowModal(false); }} onClearCustom={clearCustom}
           customSourceLabel={customSourceLabel} riskThreshold={riskThreshold} setRiskThreshold={setRiskThreshold}
           clearAllData={clearAllData} FIELD_DEFS={FIELD_DEFS}
         />
       )}
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <ThemeProvider>
+      <AppInner />
     </ThemeProvider>
   );
 }
