@@ -127,9 +127,6 @@ export default function Dashboard({ data, today, riskThreshold, onOpenSettings, 
           <span style={{ color: C.textFaint }} className="flex items-center gap-1 text-[11px] uppercase tracking-wider font-medium">
             <Sparkles size={11} /> BioScore
           </span>
-          <span style={{ color: C.teal, background: `${C.teal}14`, border: `1px solid ${C.teal}40` }} className="text-[9px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1">
-            <Info size={10} /> En tu dispositivo
-          </span>
         </div>
         <div className="relative flex flex-col items-center gap-2 pt-2">
           <BioScoreRing today={today} />

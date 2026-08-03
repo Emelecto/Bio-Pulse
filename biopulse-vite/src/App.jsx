@@ -54,20 +54,6 @@ export default function App() {
           </button>
         </div>
 
-        {/* PILL fuente activa */}
-        <button onClick={() => setShowModal(true)}
-          style={{ background: C.card, border: `1px solid ${C.border}` }}
-          className="w-full flex items-center justify-between rounded-xl px-3.5 py-2.5 mb-5">
-          <div className="flex items-center gap-2 min-w-0">
-            {customSourceLabel ? <FileText size={13} style={{ color: C.teal }} /> : <Database size={13} style={{ color: C.textFaint }} />}
-            <span style={{ color: C.text }} className="text-[12px] font-medium truncate">{sourcePillLabel}</span>
-            {(connections.fitbit.connected || connections.whoop.connected) && (
-              <span style={{ color: C.teal }} className="text-[10px]">· {[connections.fitbit.connected && "Fitbit", connections.whoop.connected && "Whoop"].filter(Boolean).join(" + ")} conectado</span>
-            )}
-          </div>
-          <ChevronRight size={14} style={{ color: C.textFaint }} className="shrink-0" />
-        </button>
-
         {/* TAB CONTENT */}
         {tab === "dash" && <Dashboard data={data} today={today} riskThreshold={riskThreshold} onOpenSettings={() => setTab("config")} />}
         {tab === "live" && <Live today={today} />}
