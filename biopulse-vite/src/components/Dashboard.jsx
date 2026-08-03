@@ -122,7 +122,7 @@ export default function Dashboard({ data, today, riskThreshold, onOpenSettings, 
   return (
     <div className="flex flex-col gap-5">
       {/* HERO: medidor principal configurable */}
-      <div style={{ background: `linear-gradient(160deg, ${C.card}, ${C.bgSoft})`, border: `1px solid ${C.border}` }} className="rounded-3xl p-5 pt-4 relative overflow-hidden">
+      <div style={{ background: `linear-gradient(160deg, ${C.card}, ${C.bgSoft})`, border: `1px solid ${C.border}` }} className="rounded-3xl p-5 pt-4 relative overflow-hidden tab-fade-in">
         <div className="relative flex items-center justify-between mb-1">
           <button onClick={onOpenSettings} style={{ color: C.textFaint }} className="flex items-center gap-1 text-[11px] uppercase tracking-wider font-medium">
             <Settings2 size={11} /> {primaryDef.label}
@@ -155,7 +155,7 @@ export default function Dashboard({ data, today, riskThreshold, onOpenSettings, 
       </div>
 
       {/* COACH CHAT ASISTENTE DE IA */}
-      <div style={{ background: C.card, border: `1px solid ${C.teal}55` }} className="rounded-3xl p-4">
+      <div style={{ background: C.card, border: `1px solid ${C.teal}55` }} className="rounded-3xl p-4 tab-fade-in">
         <div className="flex items-center gap-2 mb-3">
           <div style={{ background: `${C.teal}1A`, color: C.teal }} className="w-8 h-8 rounded-xl flex items-center justify-center">
             <Sparkles size={16} />

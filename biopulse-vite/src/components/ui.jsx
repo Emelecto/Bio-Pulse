@@ -5,16 +5,16 @@
 import React from "react";
 
 export const C_DARK = {
-  bg: "#0A1420", bgSoft: "#0D1926", card: "#101F30", cardAlt: "#0D1B2A",
-  border: "#1D3348", borderSoft: "#152840",
-  teal: "#4FD8C4", amber: "#F2B84B", rose: "#F0687A", purple: "#9BA8F2",
-  text: "#EAF2F5", textMuted: "#8AA0B2", textFaint: "#4C6377",
+  bg: "#050A10", bgSoft: "#0A121D", card: "#0D1828", cardAlt: "#122034",
+  border: "#1C2E46", borderSoft: "#15253A",
+  teal: "#00F5D4", amber: "#FFB703", rose: "#FF0055", purple: "#818CF8",
+  text: "#F3F7FA", textMuted: "#91A8BE", textFaint: "#56728C",
 };
 export const C_LIGHT = {
-  bg: "#F4F8FB", bgSoft: "#FFFFFF", card: "#FFFFFF", cardAlt: "#EEF4F8",
-  border: "#D8E3EC", borderSoft: "#E6EEF4",
-  teal: "#0FA697", amber: "#C77B12", rose: "#D63A55", purple: "#5B68D8",
-  text: "#0E2233", textMuted: "#4A6175", textFaint: "#8197A8",
+  bg: "#F0F4F8", bgSoft: "#FFFFFF", card: "#FFFFFF", cardAlt: "#E8EEF5",
+  border: "#CBD5E1", borderSoft: "#E2E8F0",
+  teal: "#059669", amber: "#D97706", rose: "#DC2626", purple: "#6366F1",
+  text: "#0F172A", textMuted: "#475569", textFaint: "#64748B",
 };
 export const C = { ...C_DARK };
 // Mutacion en runtime: todos los componentes importan el MISMO objeto C,
@@ -43,24 +43,33 @@ export function Sparkline({ data, color, height = 32 }) {
 
 export function MetricCard({ icon: Icon, label, value, unit, delta, sparkData, accent, sub }) {
   return (
-    <div style={{ background: C.card, border: `1px solid ${C.border}` }} className="rounded-2xl p-4 flex flex-col gap-3 min-w-0">
-      <div className="flex items-center gap-2 min-w-0">
-        <div style={{ background: `${accent}1A`, color: accent }} className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0">
-          <Icon size={15} strokeWidth={2.3} />
+    <div
+      style={{ background: C.card, border: `1px solid ${C.border}`, boxShadow: `0 4px 14px ${C.bg}80` }}
+      className="rounded-2xl p-3 flex flex-col gap-2 min-w-0 transition-all duration-300 hover:-translate-y-0.5 hover:border-teal/30 active:scale-[0.98] overflow-hidden relative"
+    >
+      <div className="flex items-center justify-between min-w-0">
+        <div className="flex items-center gap-1.5 min-w-0">
+          <div style={{ background: `${accent}1D`, color: accent }} className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0">
+            <Icon size={13} strokeWidth={2.4} />
+          </div>
+          <span style={{ color: C.textMuted }} className="text-[11px] font-semibold truncate" title={label}>{label}</span>
         </div>
-        <span style={{ color: C.textMuted }} className="text-xs font-medium truncate" title={label}>{label}</span>
       </div>
-      <div className="flex items-baseline gap-1">
-        <span style={{ color: C.text, fontFamily: "'IBM Plex Mono', monospace" }} className="text-2xl font-semibold tabular-nums">{value}</span>
-        {unit && <span style={{ color: C.textFaint }} className="text-xs">{unit}</span>}
+
+      <div className="flex items-baseline justify-between min-w-0">
+        <div className="flex items-baseline gap-1 min-w-0">
+          <span style={{ color: C.text, fontFamily: "'IBM Plex Mono', monospace" }} className="text-xl font-bold tabular-nums truncate">{value}</span>
+          {unit && <span style={{ color: C.textFaint }} className="text-[10px] font-medium shrink-0">{unit}</span>}
+        </div>
+        {delta !== undefined && !Number.isNaN(delta) && (
+          <span style={{ color: delta >= 0 ? C.teal : C.rose, background: delta >= 0 ? `${C.teal}14` : `${C.rose}14` }} className="text-[9.5px] font-bold px-1.5 py-0.5 rounded-md tabular-nums shrink-0">
+            {delta >= 0 ? "▲" : "▼"} {Math.abs(Math.round(delta * 10) / 10)}
+          </span>
+        )}
       </div>
-      {sub && <span style={{ color: C.textFaint }} className="text-[11px] -mt-2">{sub}</span>}
-      {sparkData && <Sparkline data={sparkData} color={accent} />}
-      {delta !== undefined && !Number.isNaN(delta) && (
-        <span style={{ color: delta >= 0 ? C.teal : C.rose }} className="text-[11px] font-medium tabular-nums">
-          {delta >= 0 ? "▲" : "▼"} {Math.abs(Math.round(delta * 10) / 10)} vs. semana anterior
-        </span>
-      )}
+
+      {sub && <span style={{ color: C.textFaint }} className="text-[10px] truncate">{sub}</span>}
+      {sparkData && <Sparkline data={sparkData} color={accent} height={22} />}
     </div>
   );
 }
@@ -145,6 +154,7 @@ export const ChartTooltip = ({ active, payload, label }) => {
 export const GLOBAL_STYLE = `
   @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Manrope:wght@400;500;600;700;800&display=swap');
   * { box-sizing: border-box; }
+  html, body { overflow-x: hidden; width: 100%; margin: 0; padding: 0; }
   ::-webkit-scrollbar { width: 6px; height: 6px; }
   ::-webkit-scrollbar-thumb { background: ${C.border}; border-radius: 4px; }
   .pulse-ribbon path { stroke-dasharray: 1400; stroke-dashoffset: 1400; animation: draw 2.2s ease-out forwards; }
@@ -153,9 +163,20 @@ export const GLOBAL_STYLE = `
   @keyframes spin { to { transform: rotate(360deg); } }
   .dt-breathe-BAJO, .dt-breathe-MODERADO, .dt-breathe-ALTO { animation-name: dt-breathe; animation-iteration-count: infinite; animation-timing-function: ease-in-out; animation-direction: alternate; }
   @keyframes dt-breathe { from { transform: scale(0.92); opacity: 0.5; } to { transform: scale(1.06); opacity: 1; } }
+  .tab-fade-in { animation: fadeInUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+  @keyframes fadeInUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  .animate-pulse-slow { animation: pulseSlow 2.5s ease-in-out infinite; }
+  @keyframes pulseSlow { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.7; transform: scale(1.04); } }
+  .typing-dot { animation: typingBounce 1.4s infinite ease-in-out both; }
+  .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+  .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+  @keyframes typingBounce { 0%, 80%, 100% { transform: scale(0.4); opacity: 0.3; } 40% { transform: scale(1); opacity: 1; } }
   @media (prefers-reduced-motion: reduce) {
     .pulse-ribbon path { animation: none; stroke-dashoffset: 0; }
-    .animate-spin { animation: none; }
+    .animate-spin, .animate-pulse-slow { animation: none; }
+    .dt-breathe-BAJO, .dt-breathe-MODERADO, .dt-breathe-ALTO { animation: none; }
+    .tab-fade-in { animation: none; opacity: 1; transform: none; }
+    .typing-dot { animation: none; opacity: 0.8; }
   }
   button:focus-visible, [tabindex]:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid ${C.teal}; outline-offset: 2px; }
   select option { background: ${C.bgSoft}; }
