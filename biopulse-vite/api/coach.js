@@ -5,11 +5,15 @@
 // MEJORAS (integracion coach v2):
 //  - Acepta `tab` (dash|live|sleep|tech|config) y ajusta el SYSTEM_PROMPT
 //    con contexto de la pantalla donde esta el usuario (D2: coach contextual).
-//  - STREAMING (C2): cuando hay API key, responde como Server-Sent Events
-//    (text/event-stream) enviando { chunk } por linea, y { done } al final.
-//    El frontend (CoachContext) va "escribiendo" la respuesta en vivo.
+//  - STREAMING (C2): responde como Server-Sent Events (text/event-stream)
+//    enviando { chunk } por linea, y { done } al final. El frontend
+//    (CoachContext) va "escribiendo" la respuesta en vivo.
 //  - FALLBACK JSON: si no hay API key o falla el stream, devuelve
-//    { reply } / { advice } en JSON plano (el frontend lo maneja igual).
+//    { reply } / { advice } en JSON plano.
+//
+// SDK: usa @google/genai (SDK actual de Gemini). Acepta API keys tanto
+// del formato clasico (AIza...) como del nuevo sistema de AI Studio
+// (AQ...), asociadas al proyecto gen-lang-client-*.
 //
 // SEGURIDAD (capas):
 //  - GOOGLE_AI_API_KEY solo en variables de entorno de Vercel (server).
@@ -21,7 +25,7 @@
 //  - Stateless: no persistimos historial ni datos de salud en servidor.
 //  - System prompt medical-safe + filtro de temas fuera de alcance.
 // ============================================================
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenAI } from "@google/genai";
 
 const MODEL = process.env.GEMINI_MODEL || "gemini-1.5-flash";
 const DISCLAIMER = "Esto no es consejo médico. Ante síntomas persistentes o fiebre, consulta a un profesional.";
@@ -127,7 +131,7 @@ function sseInit(res) {
   res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
   res.setHeader("Cache-Control", "no-cache, no-transform");
   res.setHeader("Connection", "keep-alive");
-  res.setHeader("X-Accel-Buffering", "no"); // evita buffering en proxies
+  res.setHeader("X-Accel-Buffering", "no");
   if (res.flushHeaders) res.flushHeaders();
 }
 function sseChunk(res, text) {
@@ -161,10 +165,13 @@ export default async function handler(req, res) {
     if (Object.keys(metrics).length === 0) return send(res, 400, { error: "Sin métricas válidas." });
     if (!apiKey) return send(res, 200, { advice: "", fallback: true });
     try {
-      const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({ model: MODEL, generationConfig: { maxOutputTokens: 160, temperature: 0.6 } });
-      const result = await model.generateContent([buildSystemPrompt(tab), `Métricas de hoy: ${metricLine}. Da UN consejo corto y accionable.`]);
-      const text = (result.response.text() || "").trim();
+      const ai = new GoogleGenAI({ apiKey });
+      const result = await ai.models.generateContent({
+        model: MODEL,
+        contents: [`${buildSystemPrompt(tab)}\n\nMétricas de hoy: ${metricLine}. Da UN consejo corto y accionable.`],
+        config: { maxOutputTokens: 160, temperature: 0.6 },
+      });
+      const text = (result.text || "").trim();
       return send(res, 200, { advice: text, source: "gemini" });
     } catch {
       return send(res, 200, { advice: "", fallback: true });
@@ -182,34 +189,31 @@ export default async function handler(req, res) {
   }
 
   try {
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: MODEL, generationConfig: { maxOutputTokens: 240, temperature: 0.5 } });
+    const ai = new GoogleGenAI({ apiKey });
     const convo = [buildSystemPrompt(tab), `Métricas actuales del usuario: ${metricLine || "no disponibles"}.`];
     for (const h of history) convo.push(h.role === "user" ? `Usuario: ${h.text}` : `Coach: ${h.text}`);
     convo.push(`Usuario: ${v.text}`);
 
     // STREAMING (C2): iteramos los chunks del modelo y los enviamos por SSE.
-    const result = await model.generateContentStream(convo);
+    const result = await ai.models.generateContentStream({
+      model: MODEL,
+      contents: convo,
+      config: { maxOutputTokens: 240, temperature: 0.5 },
+    });
     sseInit(res);
     let full = "";
     for await (const chunk of result.stream) {
-      const part = chunk.text();
+      const part = chunk.text;
       if (!part) continue;
       full += part;
       sseChunk(res, part);
     }
-    if (!full.trim()) {
-      // El modelo no devolvió nada: avisamos al frontend para que caiga a local.
-      sseChunk(res, "");
-    }
+    if (!full.trim()) sseChunk(res, "");
     sseDone(res);
   } catch {
     // Si falla el stream, cerramos y el frontend cae al fallback local.
     try {
-      if (!res.writableEnded) {
-        sseInit(res);
-        sseDone(res);
-      }
+      if (!res.writableEnded) { sseInit(res); sseDone(res); }
     } catch { /* noop */ }
     if (!res.writableEnded) res.end();
   }
