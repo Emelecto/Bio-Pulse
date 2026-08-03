@@ -4,7 +4,8 @@
 // ============================================================
 import React, { useMemo, useState, useEffect } from "react";
 import { Moon, Footprints, Flame, Heart, Wind, BatteryMedium, Activity, AlertTriangle, Info, Settings2, Sparkles } from "lucide-react";
-import { C, riskColor, RiskGauge, PulseRibbon, MetricCard, SectionHeader } from "./ui.jsx";
+import { C, riskColor, PulseRibbon, MetricCard, SectionHeader } from "./ui.jsx";
+import DigitalTwinRing from "./DigitalTwinRing.jsx";
 import { getLocalAdvice, getLocalReply } from "../coach/coachEngine.js";
 
 // Métricas que el usuario puede poner en el medidor principal.
@@ -133,17 +134,17 @@ export default function Dashboard({ data, today, riskThreshold, onOpenSettings, 
             <Info size={10} /> En tu dispositivo
           </span>
         </div>
-        <div className="relative flex items-center gap-5">
-          <RiskGauge score={primaryValue} level={primaryDef.key === "riskScore" ? today.riskLevel : (primaryValue > 66 ? "BAJO" : primaryValue > 33 ? "MODERADO" : "ALTO")} />
-          <div className="flex-1 min-w-0">
-            <span style={{ color: primaryDef.color, background: `${primaryDef.color}1A`, border: `1px solid ${primaryDef.color}44` }} className="inline-block text-xs font-semibold px-2.5 py-1 rounded-full mb-2">
+        <div className="relative flex flex-col items-center gap-3 pt-2">
+          <DigitalTwinRing today={today} />
+          <div className="w-full flex flex-col items-center text-center gap-2">
+            <span style={{ color: primaryDef.color, background: `${primaryDef.color}1A`, border: `1px solid ${primaryDef.color}44` }} className="inline-block text-xs font-semibold px-2.5 py-1 rounded-full">
               {primaryDef.label.toUpperCase()} {primaryValue}{primaryDef.unit}
             </span>
-            <p style={{ color: C.textMuted }} className="text-[13px] leading-snug">
+            <p style={{ color: C.textMuted }} className="text-[13px] leading-snug max-w-[18rem]">
               {today.riskLevel === "BAJO" ? "Tus métricas están dentro de tu rango habitual." : "Detectamos señales fuera de tu rango habitual en los últimos días."}
             </p>
             {today.flags.length > 0 && (
-              <div className="mt-2 space-y-1">
+              <div className="w-full mt-1 space-y-1 text-left">
                 {today.flags.map((fl, i) => (
                   <div key={i} className="flex items-start gap-1.5">
                     <AlertTriangle size={13} style={{ color: C.amber }} className="mt-0.5 shrink-0" />

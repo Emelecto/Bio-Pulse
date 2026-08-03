@@ -139,6 +139,8 @@ export const GLOBAL_STYLE = `
   @keyframes draw { to { stroke-dashoffset: 0; } }
   .animate-spin { animation: spin 1s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
+  .dt-breathe-BAJO, .dt-breathe-MODERADO, .dt-breathe-ALTO { animation-name: dt-breathe; animation-iteration-count: infinite; animation-timing-function: ease-in-out; animation-direction: alternate; }
+  @keyframes dt-breathe { from { transform: scale(0.92); opacity: 0.5; } to { transform: scale(1.06); opacity: 1; } }
   @media (prefers-reduced-motion: reduce) {
     .pulse-ribbon path { animation: none; stroke-dashoffset: 0; }
     .animate-spin { animation: none; }
