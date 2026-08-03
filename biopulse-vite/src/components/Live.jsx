@@ -37,9 +37,13 @@ export default function Live({ today }) {
     return () => clearInterval(id);
   }, [today.rhr, today.hrv, today.resp]);
 
-  const w = 600, h = 120, min = -1.5, max = 1.6;
-  const range = max - min;
-  const pts = wave.map((v, i) => [(i / (wave.length - 1)) * w, h - ((v - min) / range) * h]);
+  const w = 600, h = 120;
+  const wMin = Math.min(...wave), wMax = Math.max(...wave);
+  const range = (wMax - wMin) || 1;
+  // Padding vertical para que los picos QRS no se corten arriba/abajo.
+  const pad = h * 0.18;
+  const usable = h - pad * 2;
+  const pts = wave.map((v, i) => [(i / (wave.length - 1)) * w, pad + usable - ((v - wMin) / range) * usable]);
   const d = buildSmoothPath(pts);
 
   return (
@@ -54,7 +58,7 @@ export default function Live({ today }) {
           <span style={{ color: C.text, fontFamily: "'IBM Plex Mono', monospace" }} className="text-5xl font-semibold tabular-nums">{bpm}</span>
           <span style={{ color: C.textFaint }} className="text-sm mb-1">bpm</span>
         </div>
-        <svg viewBox={`0 0 ${w} ${h}`} width="100%" height={h} preserveAspectRatio="none" className="mt-2" role="img" aria-label="Onda de latidos en vivo">
+        <svg viewBox={`0 0 ${w} ${h}`} width="100%" height={h} preserveAspectRatio="none" className="mt-2" style={{ overflow: "hidden" }} role="img" aria-label="Onda de latidos en vivo">
           <path d={d} fill="none" stroke={C.rose} strokeWidth="2" vectorEffect="non-scaling-stroke" style={{ filter: `drop-shadow(0 0 6px ${C.rose}66)` }} />
         </svg>
       </div>

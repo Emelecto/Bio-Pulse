@@ -30,8 +30,8 @@ export default function SleepScoreRing({ night, scoreObj }) {
       <div className="relative" style={{ width: size, height: size }}>
         <span
           aria-hidden
-          className={`absolute inset-0 rounded-full ${breathe}`}
-          style={{ background: `radial-gradient(circle, ${color}22 0%, transparent 70%)`, animationDuration: `${dur}s` }}
+          className={`absolute inset-[16%] rounded-full ${breathe}`}
+          style={{ background: `radial-gradient(circle, ${color}22 0%, ${color}14 35%, transparent 60%)`, animationDuration: `${dur}s` }}
         />
         <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }} role="img" aria-label={`Sleep Score: ${score} de 100, nivel ${level}`}>
           <defs>

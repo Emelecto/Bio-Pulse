@@ -54,7 +54,7 @@ export function Sparkline({ data, color, height = 24 }) {
   const range = max - min || 1;
   // Padding vertical para que la curva suave (Catmull-Rom) nunca toque los
   // bordes del box ni se salga de la tarjeta.
-  const pad = h * 0.14;
+  const pad = h * 0.18;
   const usable = h - pad * 2;
   const pts = data.map((v, i) => [(i / (data.length - 1)) * w, pad + usable - ((v - min) / range) * usable]);
   const d = buildSmoothPath(pts);
