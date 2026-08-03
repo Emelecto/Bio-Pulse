@@ -222,6 +222,16 @@ export function computePipeline(rawDaysInput) {
     d.feverContribution = fever ? 25 : 0;
     d.riskScore = Math.round(d.controlContribution + d.apenContribution + d.acuteContribution + d.feverContribution);
     d.riskLevel = d.riskScore >= 60 ? "ALTO" : d.riskScore >= 30 ? "MODERADO" : "BAJO";
+
+    // BioScore: indice de BIENESTAR/RENDIMIENTO (mayor = mejor), derivado de
+    // metricas de wearable. Es distinto al Risk Score (que mide anomalias/fatiga).
+    const hrvComp = clamp(50 + (d.hrvDev || 0) * 2.5, 0, 100);
+    const rhrComp = clamp(100 - (d.rhr - (rhrBaseline - 10)) * 3, 0, 100);
+    const recComp = clamp(d.recovery, 0, 100);
+    const sleepComp = clamp((d.sleepEff * 0.5) + ((d.sleepHours / 9) * 100 * 0.5), 0, 100);
+    const bio = Math.round(0.30 * hrvComp + 0.20 * rhrComp + 0.25 * recComp + 0.25 * sleepComp);
+    d.bioScore = clamp(bio, 0, 100);
+    d.bioLevel = d.bioScore >= 80 ? "BUENO" : d.bioScore >= 60 ? "MEDIO" : "BAJO";
     const flags = [];
     if (acute) flags.push("Patron de fatiga aguda: recuperación + HRV bajos, RHR elevado");
     if (fever) flags.push("Posible proceso infeccioso: temperatura y frec. respiratoria elevadas");

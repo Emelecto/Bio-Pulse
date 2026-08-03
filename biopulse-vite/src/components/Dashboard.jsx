@@ -5,7 +5,7 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { Moon, Footprints, Flame, Heart, Wind, BatteryMedium, Activity, AlertTriangle, Info, Settings2, Sparkles } from "lucide-react";
 import { C, riskColor, MetricCard, SectionHeader } from "./ui.jsx";
-import DigitalTwinRing from "./DigitalTwinRing.jsx";
+import BioScoreRing from "./BioScoreRing.jsx";
 import { getLocalAdvice, getLocalReply } from "../coach/coachEngine.js";
 
 // Métricas que el usuario puede poner en el medidor principal.
@@ -121,37 +121,57 @@ export default function Dashboard({ data, today, riskThreshold, onOpenSettings, 
 
   return (
     <div className="flex flex-col gap-5">
-      {/* HERO: medidor principal configurable */}
+      {/* HERO: BioScore (bienestar, mayor = mejor) */}
       <div style={{ background: `linear-gradient(160deg, ${C.card}, ${C.bgSoft})`, border: `1px solid ${C.border}` }} className="rounded-3xl p-5 pt-4 relative overflow-hidden tab-fade-in">
         <div className="relative flex items-center justify-between mb-1">
-          <button onClick={onOpenSettings} style={{ color: C.textFaint }} className="flex items-center gap-1 text-[11px] uppercase tracking-wider font-medium">
-            <Settings2 size={11} /> {primaryDef.label}
-          </button>
+          <span style={{ color: C.textFaint }} className="flex items-center gap-1 text-[11px] uppercase tracking-wider font-medium">
+            <Sparkles size={11} /> BioScore
+          </span>
           <span style={{ color: C.teal, background: `${C.teal}14`, border: `1px solid ${C.teal}40` }} className="text-[9px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1">
             <Info size={10} /> En tu dispositivo
           </span>
         </div>
-        <div className="relative flex flex-col items-center gap-3 pt-2">
-          <DigitalTwinRing today={today} />
-          <div className="w-full flex flex-col items-center text-center gap-2">
-            <span style={{ color: primaryDef.color, background: `${primaryDef.color}1A`, border: `1px solid ${primaryDef.color}44` }} className="inline-block text-xs font-semibold px-2.5 py-1 rounded-full">
-              {primaryDef.label.toUpperCase()} {primaryValue}{primaryDef.unit}
-            </span>
-            <p style={{ color: C.textMuted }} className="text-[13px] leading-snug max-w-[18rem]">
-              {today.riskLevel === "BAJO" ? "Tus métricas están dentro de tu rango habitual." : "Detectamos señales fuera de tu rango habitual en los últimos días."}
-            </p>
-            {today.flags.length > 0 && (
-              <div className="w-full mt-1 space-y-1 text-left">
-                {today.flags.map((fl, i) => (
-                  <div key={i} className="flex items-start gap-1.5">
-                    <AlertTriangle size={13} style={{ color: C.amber }} className="mt-0.5 shrink-0" />
-                    <span style={{ color: C.amber }} className="text-[12px] leading-snug">{fl}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+        <div className="relative flex flex-col items-center gap-2 pt-2">
+          <BioScoreRing today={today} />
+          <p style={{ color: C.textMuted }} className="text-[13px] leading-snug max-w-[18rem] text-center">
+            {today.bioLevel === "BUENO" ? "Tu bienestar está alto. Mantén tus hábitos actuales." : today.bioLevel === "MEDIO" ? "Bienestar aceptable. Hay margen para mejorar tu recuperación." : "Bienestar bajo: prioriza descanso y sueño hoy."}
+          </p>
         </div>
+      </div>
+
+      {/* SECCION RIESGO: score de riesgo (anomalias/fatiga), mas pequeña pero detallada */}
+      <div style={{ background: C.card, border: `1px solid ${C.border}` }} className="rounded-3xl p-4 tab-fade-in">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <div style={{ background: `${rColor}1A`, color: rColor }} className="w-8 h-8 rounded-xl flex items-center justify-center">
+              <AlertTriangle size={16} />
+            </div>
+            <div>
+              <span style={{ color: C.text }} className="text-sm font-semibold block">Score de riesgo</span>
+              <span style={{ color: C.textFaint }} className="text-[10px]">Fatiga / anomalías fisiológicas</span>
+            </div>
+          </div>
+          <span style={{ color: rColor, background: `${rColor}1A`, border: `1px solid ${rColor}44` }} className="text-[11px] font-bold px-2.5 py-1 rounded-full tabular-nums">
+            {today.riskScore}/100 · {today.riskLevel}
+          </span>
+        </div>
+        {/* Barra de progreso del riesgo */}
+        <div className="w-full h-2 rounded-full overflow-hidden" style={{ background: C.bgSoft }}>
+          <div style={{ width: `${today.riskScore}%`, background: rColor }} className="h-full rounded-full transition-all duration-700" />
+        </div>
+        <p style={{ color: C.textMuted }} className="text-[12px] leading-snug mt-3">
+          {today.riskLevel === "BAJO" ? "Sin señales de riesgo fuera de tu rango habitual." : "Detectamos señales fuera de tu rango habitual en los últimos días."}
+        </p>
+        {today.flags.length > 0 && (
+          <div className="w-full mt-2 space-y-1">
+            {today.flags.map((fl, i) => (
+              <div key={i} className="flex items-start gap-1.5">
+                <AlertTriangle size={13} style={{ color: C.amber }} className="mt-0.5 shrink-0" />
+                <span style={{ color: C.amber }} className="text-[12px] leading-snug">{fl}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* COACH CHAT ASISTENTE DE IA */}
