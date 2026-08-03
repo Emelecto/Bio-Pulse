@@ -4,7 +4,7 @@
 // ============================================================
 import React, { useEffect, useRef, useState } from "react";
 import { Heart, Activity, Wind, BatteryMedium } from "lucide-react";
-import { C } from "./ui.jsx";
+import { C, Sparkline } from "./ui.jsx";
 
 // Genera una onda tipo ECG para un BPM dado.
 function ecgWave(bpm, points = 120) {
@@ -40,13 +40,15 @@ export default function Live({ today }) {
   const w = 600, h = 120, min = -1.5, max = 1.6;
   const range = max - min;
   const pts = wave.map((v, i) => [(i / (wave.length - 1)) * w, h - ((v - min) / range) * h]);
-  let d = `M${pts[0][0]},${pts[0][1]}`;
-  for (let i = 1; i < pts.length; i++) {
-    const [x0, y0] = pts[i - 1], [x1, y1] = pts[i];
+  // Curva suave (catmull-rom -> bezier) para que la onda se vea natural y fluida.
+  let d = `M${pts[0][0].toFixed(2)},${pts[0][1].toFixed(2)}`;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const [x0, y0] = pts[i];
+    const [x1, y1] = pts[i + 1];
     const mx = (x0 + x1) / 2;
-    d += ` Q${x0},${y0} ${mx},${(y0 + y1) / 2}`;
+    d += ` C${x0.toFixed(2)},${y0.toFixed(2)} ${mx.toFixed(2)},${y0.toFixed(2)} ${mx.toFixed(2)},${((y0 + y1) / 2).toFixed(2)}`;
+    d += ` C${mx.toFixed(2)},${y1.toFixed(2)} ${mx.toFixed(2)},${y1.toFixed(2)} ${x1.toFixed(2)},${y1.toFixed(2)}`;
   }
-  d += ` T${pts[pts.length - 1][0]},${pts[pts.length - 1][1]}`;
 
   return (
     <div className="flex flex-col gap-5">
@@ -82,8 +84,6 @@ export default function Live({ today }) {
 }
 
 function LiveCard({ icon: Icon, label, value, unit, color, spark }) {
-  const min = Math.min(...spark), max = Math.max(...spark), range = max - min || 1;
-  const d = spark.map((v, i) => `${(i / (spark.length - 1)) * 100},${32 - ((v - min) / range) * 30}`).join(" L");
   return (
     <div style={{ background: C.card, border: `1px solid ${C.border}` }} className="rounded-2xl p-4 flex flex-col gap-2">
       <div className="flex items-center gap-2">
@@ -94,7 +94,7 @@ function LiveCard({ icon: Icon, label, value, unit, color, spark }) {
         <span style={{ color: C.text, fontFamily: "'IBM Plex Mono', monospace" }} className="text-2xl font-semibold tabular-nums">{value}</span>
         <span style={{ color: C.textFaint }} className="text-xs">{unit}</span>
       </div>
-      <svg viewBox="0 0 100 32" width="100%" height="32" preserveAspectRatio="none"><path d={`M${d}`} fill="none" stroke={color} strokeWidth="2" /></svg>
+      <Sparkline data={spark} color={color} height={28} />
     </div>
   );
 }

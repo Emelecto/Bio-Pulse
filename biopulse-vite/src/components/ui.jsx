@@ -27,16 +27,24 @@ export const riskColor = (level) =>
 export const MONTHS = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
 export const fmtDate = (d) => `${String(d.getDate()).padStart(2,"0")} ${MONTHS[d.getMonth()]}`;
 
-export function Sparkline({ data, color, height = 32 }) {
+export function Sparkline({ data, color, height = 24 }) {
   if (!data || data.length < 2) return null;
   const w = 100, h = height;
   const min = Math.min(...data), max = Math.max(...data);
   const range = max - min || 1;
   const pts = data.map((v, i) => [(i / (data.length - 1)) * w, h - ((v - min) / range) * h]);
-  const d = pts.reduce((acc, [x, y], i) => acc + (i === 0 ? `M${x},${y}` : ` L${x},${y}`), "");
+  // Curva suave (catmull-rom -> bezier) para que se vea natural y fluida.
+  let d = `M${pts[0][0].toFixed(2)},${pts[0][1].toFixed(2)}`;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const [x0, y0] = pts[i];
+    const [x1, y1] = pts[i + 1];
+    const mx = (x0 + x1) / 2;
+    d += ` C${x0.toFixed(2)},${y0.toFixed(2)} ${mx.toFixed(2)},${y0.toFixed(2)} ${mx.toFixed(2)},${((y0 + y1) / 2).toFixed(2)}`;
+    d += ` C${mx.toFixed(2)},${y1.toFixed(2)} ${mx.toFixed(2)},${y1.toFixed(2)} ${x1.toFixed(2)},${y1.toFixed(2)}`;
+  }
   return (
     <svg viewBox={`0 0 ${w} ${h}`} width="100%" height={height} preserveAspectRatio="none" role="img" aria-label="Mini gráfica de tendencia">
-      <path d={d} fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.9" />
+      <path d={d} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" opacity="0.9" />
     </svg>
   );
 }
@@ -45,31 +53,27 @@ export function MetricCard({ icon: Icon, label, value, unit, delta, sparkData, a
   return (
     <div
       style={{ background: C.card, border: `1px solid ${C.border}`, boxShadow: `0 4px 14px ${C.bg}80` }}
-      className="rounded-2xl p-3 flex flex-col gap-2 min-w-0 transition-all duration-300 hover:-translate-y-0.5 hover:border-teal/30 active:scale-[0.98] overflow-hidden relative"
+      className="rounded-2xl p-3.5 flex flex-col gap-2.5 min-w-0 transition-all duration-300 hover:-translate-y-0.5 hover:border-teal/30 active:scale-[0.98] overflow-hidden relative"
     >
-      <div className="flex items-center justify-between min-w-0">
-        <div className="flex items-center gap-1.5 min-w-0">
-          <div style={{ background: `${accent}1D`, color: accent }} className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0">
-            <Icon size={13} strokeWidth={2.4} />
-          </div>
-          <span style={{ color: C.textMuted }} className="text-[11px] font-semibold truncate" title={label}>{label}</span>
+      <div className="flex items-center gap-2 min-w-0">
+        <div style={{ background: `${accent}1A`, color: accent }} className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0">
+          <Icon size={15} strokeWidth={2.3} />
         </div>
+        <span style={{ color: C.textMuted }} className="text-[12px] font-medium truncate" title={label}>{label}</span>
       </div>
 
-      <div className="flex items-baseline justify-between min-w-0">
-        <div className="flex items-baseline gap-1 min-w-0">
-          <span style={{ color: C.text, fontFamily: "'IBM Plex Mono', monospace" }} className="text-xl font-bold tabular-nums truncate">{value}</span>
-          {unit && <span style={{ color: C.textFaint }} className="text-[10px] font-medium shrink-0">{unit}</span>}
-        </div>
-        {delta !== undefined && !Number.isNaN(delta) && (
-          <span style={{ color: delta >= 0 ? C.teal : C.rose, background: delta >= 0 ? `${C.teal}14` : `${C.rose}14` }} className="text-[9.5px] font-bold px-1.5 py-0.5 rounded-md tabular-nums shrink-0">
-            {delta >= 0 ? "▲" : "▼"} {Math.abs(Math.round(delta * 10) / 10)}
-          </span>
-        )}
+      <div className="flex items-baseline gap-1 min-w-0">
+        <span style={{ color: C.text, fontFamily: "'IBM Plex Mono', monospace" }} className="text-[22px] font-semibold tabular-nums truncate">{value}</span>
+        {unit && <span style={{ color: C.textFaint }} className="text-[11px] shrink-0">{unit}</span>}
       </div>
 
-      {sub && <span style={{ color: C.textFaint }} className="text-[10px] truncate">{sub}</span>}
-      {sparkData && <Sparkline data={sparkData} color={accent} height={22} />}
+      {sub && <span style={{ color: C.textFaint }} className="text-[11px] truncate">{sub}</span>}
+      {sparkData && <Sparkline data={sparkData} color={accent} height={24} />}
+      {delta !== undefined && !Number.isNaN(delta) && (
+        <span style={{ color: delta >= 0 ? C.teal : C.rose }} className="text-[11px] font-medium tabular-nums">
+          {delta >= 0 ? "▲" : "▼"} {Math.abs(Math.round(delta * 10) / 10)} vs. semana anterior
+        </span>
+      )}
     </div>
   );
 }

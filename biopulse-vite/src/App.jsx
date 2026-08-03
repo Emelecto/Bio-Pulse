@@ -6,7 +6,7 @@
 import React, { useState } from "react";
 import { Activity, ChevronRight, FileText, Database, Settings2 } from "lucide-react";
 import { C, GLOBAL_STYLE } from "./components/ui.jsx";
-import { ThemeProvider } from "./lib/theme.jsx";
+import { ThemeProvider, useTheme } from "./lib/theme.jsx";
 import { useBiopulseData } from "./hooks/useBiopulseData.js";
 import TabBar from "./components/TabBar.jsx";
 import DataSourceModal from "./components/DataSourceModal.jsx";
@@ -17,6 +17,7 @@ import Config from "./components/Config.jsx";
 import Technical from "./components/Technical.jsx";
 
 export default function App() {
+  const { theme } = useTheme(); // consume contexto para forzar re-render global al cambiar tema
   const hook = useBiopulseData();
   const {
     customData, demoData, customSourceLabel, historyRange, setHistoryRange,
