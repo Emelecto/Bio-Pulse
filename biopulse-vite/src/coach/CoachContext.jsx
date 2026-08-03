@@ -102,10 +102,13 @@ export function CoachProvider({ children, today }) {
 
     // Placeholder de respuesta que se va llenando con el stream.
     let streamingId = Date.now();
-    const appendCoach = (chunk) =>
+    const appendCoach = (chunk) => {
+      if (!chunk) return;
       setMessages((m) => {
         const copy = m.slice();
         const last = copy[copy.length - 1];
+        // Anti-eco: si el modelo repite lo ya escrito (o lo tiene al final), ignorar.
+        if (last && last.__streaming === streamingId && last.text.endsWith(chunk)) return m;
         if (last && last.__streaming === streamingId) {
           copy[copy.length - 1] = { role: "coach", text: last.text + chunk, __streaming: streamingId, source: "groq" };
         } else {
@@ -113,6 +116,7 @@ export function CoachProvider({ children, today }) {
         }
         return copy;
       });
+    };
 
     const fallbackLocal = () => {
       const fb = getLocalReply(todayRef.current || {}, text);
