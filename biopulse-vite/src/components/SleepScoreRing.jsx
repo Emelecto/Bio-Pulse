@@ -5,11 +5,11 @@
 // igual filosofia que el BioScore del Inicio.
 // ============================================================
 import React from "react";
-import { C, scoreColor } from "./ui.jsx";
+import { C, scoreColor, BRAND_TEAL } from "./ui.jsx";
 
-// Color por nivel de sueño: usa scoreColor (escala continua verde->rojo).
+// Color por nivel de sueño: usa scoreColor (escala teal->verde->amarillo->rojo).
 export function sleepColor(level) {
-  return level === "BAJO" ? C.rose : level === "MEDIO" ? C.amber : C.teal;
+  return level === "BAJO" ? C.rose : level === "MEDIO" ? C.amber : BRAND_TEAL;
 }
 
 export default function SleepScoreRing({ night, scoreObj }) {

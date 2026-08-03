@@ -2,12 +2,12 @@
 // TAB DASHBOARD — bienvenida con medidor principal configurable,
 // métricas secundarias y el COACH ASISTENTE DE IA.
 // ============================================================
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Moon, Footprints, Flame, Heart, Wind, BatteryMedium, Activity, AlertTriangle, Info, Settings2, Sparkles } from "lucide-react";
 import { C, riskColor, MetricCard, SectionHeader } from "./ui.jsx";
 import BioScoreRing from "./BioScoreRing.jsx";
 import RiskScoreRing from "./RiskScoreRing.jsx";
-import { getLocalAdvice, getLocalReply } from "../coach/coachEngine.js";
+import { useCoach } from "../coach/CoachContext.jsx";
 
 // Métricas que el usuario puede poner en el medidor principal.
 const PRIMARY_OPTIONS = [
@@ -28,87 +28,9 @@ const SECONDARY_METRICS = [
 ];
 
 export default function Dashboard({ data, today, riskThreshold, onOpenSettings, onOpenCoachSettings }) {
+  const { openCoach } = useCoach();
   const [primary, setPrimary] = useState("riskScore");
   const [visibleSecondary, setVisibleSecondary] = useState(SECONDARY_METRICS.map((m) => m.key));
-
-  // COACH CHAT: consejo automatico inicial (siempre visible) + chat con Gemini.
-  // Mensajes: [{role:'coach'|'user', text}]. El primer mensaje es el consejo del dia.
-  const [messages, setMessages] = useState(() => {
-    const a = getLocalAdvice(today);
-    return [{ role: "coach", text: (a.title ? a.title + ". " : "") + a.advice, source: a.source }];
-  });
-  const [input, setInput] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [notice, setNotice] = useState(null); // errores/limites
-  const [aiConnected, setAiConnected] = useState(false); // Gemini activo?
-
-  // Mejora el primer mensaje con Gemini si responde a tiempo (sin bloquear UI).
-  useEffect(() => {
-    let alive = true;
-    const enhance = async () => {
-      try {
-        const base = import.meta.env.VITE_COACH_API || "/api/coach";
-        const ctrl = new AbortController();
-        const to = setTimeout(() => ctrl.abort(), 4000);
-        const res = await fetch(base, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ metrics: today }),
-          signal: ctrl.signal,
-        });
-        clearTimeout(to);
-        if (!res.ok) return;
-        const j = await res.json();
-        if (j && j.advice && j.advice.length > 10 && alive) {
-          const [title, ...rest] = j.advice.split("||");
-          setMessages([{ role: "coach", text: (title ? title.trim() + ". " : "") + (rest.join("||") || j.advice).trim(), source: "llm" }]);
-          setAiConnected(true);
-        }
-      } catch { /* silencioso: se queda el local */ }
-    };
-    enhance();
-    return () => { alive = false; };
-  }, [today]);
-
-  const sendMessage = async () => {
-    const text = input.trim();
-    if (!text || busy) return;
-    if (text.length > 280) { setNotice("Mensaje demasiado largo (máx 280)."); return; }
-    const userMsg = { role: "user", text };
-    const history = messages.map((m) => ({ role: m.role === "user" ? "user" : "model", text: m.text }));
-    setMessages((m) => [...m, userMsg]);
-    setInput("");
-    setBusy(true);
-    setNotice(null);
-    try {
-      const base = import.meta.env.VITE_COACH_API || "/api/coach";
-      const ctrl = new AbortController();
-      const to = setTimeout(() => ctrl.abort(), 8000);
-      const res = await fetch(base, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ metrics: today, message: text, history }),
-        signal: ctrl.signal,
-      });
-      clearTimeout(to);
-      const j = await res.json();
-      if (res.status === 429) { setNotice("Demasiadas preguntas. Espera un momento."); }
-      else if (res.status === 400 && j.error) { setNotice(j.error); }
-      else if (j && j.reply && j.reply.length > 0) {
-        setMessages((m) => [...m, { role: "coach", text: j.reply, source: j.source }]);
-        if (j.source === "gemini") setAiConnected(true);
-      } else {
-        // Fallback local: usa el banco de consejos coherente con la pregunta + perfil.
-        const fb = getLocalReply(today, text);
-        setMessages((m) => [...m, { role: "coach", text: fb, source: "local" }]);
-      }
-    } catch {
-      const fb = getLocalReply(today, text);
-      setMessages((m) => [...m, { role: "coach", text: fb, source: "local" }]);
-    } finally {
-      setBusy(false);
-    }
-  };
 
   const primaryDef = PRIMARY_OPTIONS.find((p) => p.key === primary) || PRIMARY_OPTIONS[0];
   const primaryValue = primaryDef.get(today);
@@ -172,78 +94,20 @@ export default function Dashboard({ data, today, riskThreshold, onOpenSettings, 
         )}
       </div>
 
-      {/* COACH CHAT ASISTENTE DE IA */}
-      <div style={{ background: C.card, border: `1px solid ${C.teal}55` }} className="glass rounded-3xl p-4 tab-fade-in">
-        <div className="flex items-center gap-2 mb-3">
-          <div style={{ background: `${C.teal}1A`, color: C.teal }} className="w-8 h-8 rounded-xl flex items-center justify-center">
-            <Sparkles size={16} />
-          </div>
-          <div>
-            <span style={{ color: C.text }} className="text-sm font-semibold block">Coach BioPulse</span>
-            <span style={{ color: aiConnected ? C.teal : C.textFaint }} className="text-[10px] flex items-center gap-1">
-              <span style={{ width: 6, height: 6, borderRadius: 999, background: aiConnected ? C.teal : C.textFaint, display: "inline-block" }} />
-              {aiConnected ? "IA conectada (Gemini)" : "Modo local · añade GOOG.le.ai API key para IA"}
-            </span>
-          </div>
+      {/* CTA COACH: abre el asistente flotante (el chat vive en <Coach/>) */}
+      <button
+        onClick={openCoach}
+        style={{ background: C.card, border: `1px solid ${C.teal}55` }}
+        className="glass rounded-3xl p-4 tab-fade-in w-full flex items-center gap-3 active:scale-[0.99] transition-transform text-left"
+      >
+        <div style={{ background: `${C.teal}1A`, color: C.teal }} className="w-9 h-9 rounded-xl flex items-center justify-center">
+          <Sparkles size={18} />
         </div>
-
-        {/* Historial de mensajes */}
-        <div className="flex flex-col gap-2 max-h-72 overflow-y-auto mb-3 pr-1">
-          {messages.map((m, i) => (
-            <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-              <div
-                style={{
-                  background: m.role === "user" ? C.teal : C.bgSoft,
-                  color: m.role === "user" ? C.bg : C.text,
-                  border: `1px solid ${m.role === "user" ? C.teal : C.border}`,
-                }}
-                className="text-[12.5px] leading-snug rounded-2xl px-3 py-2 max-w-[85%]"
-              >
-                {m.text}
-              </div>
-            </div>
-          ))}
-          {busy && (
-            <div className="flex justify-start">
-              <div style={{ background: C.bgSoft, border: `1px solid ${C.border}`, color: C.textFaint }} className="text-[12px] rounded-2xl px-3 py-2">
-                Pensando…
-              </div>
-            </div>
-          )}
+        <div className="min-w-0">
+          <span style={{ color: C.text }} className="text-sm font-semibold block">Coach BioPulse</span>
+          <span style={{ color: C.textMuted }} className="text-[11px]">Toca el ícono ◆ para preguntarle sobre tus métricas.</span>
         </div>
-
-        {notice && (
-          <div style={{ background: `${C.amber}14`, border: `1px solid ${C.amber}40` }} className="rounded-xl px-3 py-2 mb-2">
-            <span style={{ color: C.amber }} className="text-[11.5px]">{notice}</span>
-          </div>
-        )}
-
-        {/* Input de chat */}
-        <div className="flex items-center gap-2">
-          <input
-            type="text"
-            value={input}
-            maxLength={280}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter") sendMessage(); }}
-            placeholder="Pregúntale sobre tus métricas…"
-            style={{ background: C.bgSoft, border: `1px solid ${C.border}`, color: C.text }}
-            className="flex-1 text-[13px] rounded-xl px-3 py-2.5 outline-none placeholder:text-[11px]"
-          />
-          <button
-            onClick={sendMessage}
-            disabled={busy || !input.trim()}
-            style={{ background: C.teal, color: C.bg, opacity: (busy || !input.trim()) ? 0.5 : 1 }}
-            className="w-10 h-10 rounded-xl flex items-center justify-center active:scale-95 transition-opacity shrink-0"
-            aria-label="Enviar"
-          >
-            <Sparkles size={16} />
-          </button>
-        </div>
-        <p style={{ color: C.textFaint }} className="text-[10px] mt-2">
-          El coach interpreta tus métricas (HRV, sueño, recuperación…). No es consejo médico.
-        </p>
-      </div>
+      </button>
 
       {/* SECUNDARIAS */}
       <div>

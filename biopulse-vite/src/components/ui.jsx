@@ -25,20 +25,56 @@ export function applyTheme(theme) {
 export const riskColor = (level) =>
   level === "ALTO" ? C.rose : level === "MODERADO" ? C.amber : C.teal;
 
-// Color continuo por score, interpolado cada 5 puntos.
-// kind 'higher' => mayor score = mejor (verde vivo arriba, rojo abajo).
-// kind 'lower'  => mayor score = peor  (rojo arriba, verde abajo) [riesgo].
-// Recorre: verde vivo -> verde tenue -> amarillo -> naranja -> rojo, segun
-// la "calidad" (0=malo .. 100=bueno para 'higher'; invertido para 'lower').
+// Color de MARCA (teal emblematico de BioPulse) en el tope del score.
+// Se usa como ancla en 100% para todos los anillos.
+export const BRAND_TEAL = "#22d3c5";
+
+// === scoreColor: escala de color por score (0..100) ===
+// Requisito de producto (Emilio): el 100% debe usar el teal emblematico
+// (#22d3c5) de la marca, y al bajar el score la tonalidad debe recorrer
+// verde -> amarillo -> rojo (rojo en 0%). Es una escala de "calidad".
+//
+// kind 'higher' => mayor score = mejor  (BioScore, SleepScore).
+// kind 'lower'  => mayor score = peor   (Risk Score: 100 = maximo riesgo = rojo).
+//
+// Puntos de ancla (q = calidad 0..100, donde 100 es "lo mejor"):
+//   100 -> BRAND_TEAL (verde-azulado de marca)
+//    75 -> verde       (hsl ~150)
+//    50 -> amarillo    (hsl ~52)
+//    25 -> naranja     (hsl ~28)
+//     0 -> rojo        (hsl ~0)
+// Interpolamos en HSL por tramos para una transicion suave y "viva".
+const _lch = (q) => {
+  const clampQ = Math.max(0, Math.min(100, q));
+  // Anclas de tono (calidad -> hue) para recorrer teal -> verde -> amarillo -> naranja -> rojo.
+  // El punto medio (50) es amarillo, acercandose a lo pedido visualmente.
+  const STOPS = [
+    [100, 168], // teal de marca (HSL ~168, fijado a hex abajo en >=90)
+    [75, 140],  // verde
+    [50, 52],   // amarillo
+    [25, 28],   // naranja
+    [0, 0],     // rojo
+  ];
+  let hue;
+  if (clampQ >= 90) return BRAND_TEAL; // teal emblematico en el tope
+  for (let i = 0; i < STOPS.length - 1; i++) {
+    const [qTop, hTop] = STOPS[i];
+    const [qBot, hBot] = STOPS[i + 1];
+    if (clampQ <= qTop && clampQ >= qBot) {
+      const t = (clampQ - qBot) / (qTop - qBot); // 0 en el inferior, 1 en el superior
+      hue = hBot + t * (hTop - hBot);
+      break;
+    }
+  }
+  if (hue == null) hue = 0;
+  const sat = 78 + (clampQ / 100) * 14; // 78%..92%
+  const light = 50 + (clampQ / 100) * 4; // 50%..54%
+  return `hsl(${hue.toFixed(0)}, ${sat.toFixed(0)}%, ${light.toFixed(0)}%)`;
+};
 export function scoreColor(score, kind = "higher") {
   const s = Math.max(0, Math.min(100, score));
-  const q = kind === "lower" ? 100 - s : s; // calidad 0..100 (0 malo, 100 bueno)
-  // Hue: 145 (verde vivo) a 0 (rojo). Bajamos cada 5 pts.
-  const hue = (q / 100) * 145;
-  // Saturacion/lightness para que se vea "vivo" arriba y palido/tenue hacia el medio.
-  const sat = 70 + (q / 100) * 20;       // 70%..90%
-  const light = 52 - Math.abs(q - 50) / 50 * 8; // mas claro (tenue) cerca de 50
-  return `hsl(${hue.toFixed(0)}, ${sat.toFixed(0)}%, ${light.toFixed(0)}%)`;
+  const q = kind === "lower" ? 100 - s : s; // calidad: 100 = lo mejor
+  return _lch(q);
 }
 
 export const fmtDate = (d) => `${String(d.getDate()).padStart(2,"0")} ${MONTHS[d.getMonth()]}`;

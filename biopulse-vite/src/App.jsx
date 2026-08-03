@@ -2,6 +2,10 @@
 // BioPulse — App shell (mobile-first, 5 tabs)
 // Tabs: Técnico | Live | Dashboard | Sueño | Config
 // Orden de barra inferior: Tecnico | Live | Inicio | Sueno | Ajustes
+//
+// El estado de tab ahora vive en <CoachProvider> (A2) para que el
+// chat del coach persista entre pestañas. <Coach/> (FAB + sheet)
+// se monta UNA SOLA VEZ, fuera del contenido de tabs.
 // ============================================================
 import React, { useState } from "react";
 import { Activity, ChevronRight, FileText, Database, Settings2 } from "lucide-react";
@@ -15,14 +19,16 @@ import Live from "./components/Live.jsx";
 import Sleep from "./components/Sleep.jsx";
 import Config from "./components/Config.jsx";
 import Technical from "./components/Technical.jsx";
+import Coach from "./components/Coach.jsx";
+import { CoachProvider, useCoach } from "./coach/CoachContext.jsx";
 
 // AppInner vive DENTRO del ThemeProvider: asi useTheme() lee el contexto real
 // y re-renderiza toda la app (y todos los tabs) al cambiar el tema, haciendo
 // que el toggle claro/oscuro se vea de inmediato (sin salir de Config).
-function AppInner() {
+function AppInner({ hook }) {
   const { theme, forceVersion } = useTheme(); // consume contexto REAL -> re-render global al cambiar tema
   void forceVersion; // fuerza re-render en cada cambio de tema (incl. mutacion de C)
-  const hook = useBiopulseData();
+  const { tab, setTab } = useCoach(); // tab vive en CoachProvider (persiste el chat entre tabs)
   const {
     customData, demoData, customSourceLabel, historyRange, setHistoryRange,
     riskThreshold, setRiskThreshold, clearAllData, showModal, setShowModal,
@@ -33,7 +39,6 @@ function AppInner() {
 
   const data = customData || demoData;
   const today = data[data.length - 1];
-  const [tab, setTab] = useState("dash");
 
   const sourcePillLabel = customSourceLabel ? customSourceLabel : "Datos demo";
 
@@ -77,14 +82,29 @@ function AppInner() {
           clearAllData={clearAllData} FIELD_DEFS={FIELD_DEFS}
         />
       )}
+
+      {/* COACH: FAB + bottom-sheet, montado UNA SOLA VEZ (no se desmonta al cambiar tab). */}
+      <Coach />
     </div>
+  );
+}
+
+// Root llama al hook UNA vez y envuelve todo en CoachProvider (A2).
+function Root() {
+  const hook = useBiopulseData();
+  const data = hook.customData || hook.demoData;
+  const today = data[data.length - 1];
+  return (
+    <CoachProvider today={today}>
+      <AppInner hook={hook} />
+    </CoachProvider>
   );
 }
 
 export default function App() {
   return (
     <ThemeProvider>
-      <AppInner />
+      <Root />
     </ThemeProvider>
   );
 }

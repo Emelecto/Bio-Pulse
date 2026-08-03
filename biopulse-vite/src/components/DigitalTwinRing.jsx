@@ -7,16 +7,12 @@
 // Es el diferenciador vs Whoop hecho UI: tu fisiologia predicha.
 // ============================================================
 import React from "react";
-import { C } from "./ui.jsx";
+import { C, scoreColor } from "./ui.jsx";
 
-// Mapea score 0..100 a un color HSL continuo:
-//   verde (hue 150) en riesgo bajo -> amarillo (hue 50) en ~50 -> rojo (hue 0) en 100.
-// Cuanto mayor el riesgo, mas se acerca al rojo. Muchos shades intermedios.
+// Color de riesgo continuo (teal en 0% riesgo -> rojo en 100%), coherente
+// con RiskScoreRing vía scoreColor(kind='lower').
 export function riskHue(score) {
-  const s = Math.max(0, Math.min(100, score));
-  // hue decrece de 150 (verde) a 0 (rojo) linealmente con el score.
-  const hue = 150 - (s / 100) * 150;
-  return `hsl(${hue}, 80%, 55%)`;
+  return scoreColor(score, "lower");
 }
 
 export default function DigitalTwinRing({ today }) {

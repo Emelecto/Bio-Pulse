@@ -122,7 +122,7 @@ export default function Technical() {
           El índice 0–100 combina: (1) control estadístico — z-scores de 6 métricas vs. tu línea base; (2) complejidad ApEn — caída de variabilidad de la HRV; (3) patrón de fatiga aguda; (4) flag de proceso infeccioso.
           Entrenado sobre 100k registros reales de Whoop con 5-fold CV estratificada. <span style={{ color: C.amber }}>Nota honesta:</span> el flag de infección se deriva de temperatura y respiración (casi determinístico) — es regla clínica, no predicción aprendida.
         </p>
-        <div className="flex items-start gap-2 mt-2" style={{ background: `${C.rose}10`, border: `1px solid ${C.rose}33` }} className="rounded-lg p-2.5">
+        <div className="flex items-start gap-2 mt-2 rounded-lg p-2.5" style={{ background: `${C.rose}10`, border: `1px solid ${C.rose}33` }}>
           <Info size={13} style={{ color: C.rose }} className="mt-0.5 shrink-0" />
           <span style={{ color: C.rose }} className="text-[11px] leading-snug">El coach no es diagnóstico médico. Ante síntomas persistentes, consulta a un profesional.</span>
         </div>

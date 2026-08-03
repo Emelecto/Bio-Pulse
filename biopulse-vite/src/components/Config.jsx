@@ -181,7 +181,7 @@ export default function Config({ data, hook }) {
           </button>
         </div>
         {customSourceLabel && (
-          <div className="mt-3 flex items-center justify-between" style={{ background: C.bgSoft, border: `1px solid ${C.borderSoft}` }} className="rounded-xl px-3 py-2">
+          <div className="mt-3 flex items-center justify-between rounded-xl px-3 py-2" style={{ background: C.bgSoft, border: `1px solid ${C.borderSoft}` }}>
             <span style={{ color: C.textFaint }} className="text-[11px]">Fuente: <span style={{ color: C.text }}>{customSourceLabel}</span></span>
             <button onClick={clearCustom} style={{ color: C.rose }} className="text-[11px] flex items-center gap-1"><Trash2 size={11} /> Quitar</button>
           </div>
