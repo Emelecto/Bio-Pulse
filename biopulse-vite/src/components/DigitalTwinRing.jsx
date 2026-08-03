@@ -1,17 +1,28 @@
 // ============================================================
-// DigitalTwinRing — hero "gemelo digital" del Dashboard.
+// DigitalTwinRing — hero "BioScore" del Dashboard.
 // Anillo circular que RESPIRA segun la recuperacion/riesgo del
-// usuario (HRV + riskScore). Color por nivel de riesgo, glow que
-// pulsa, micro-label de HRV en vivo. Es el diferenciador vs Whoop
-// hecho UI: tu fisiologia predicha, no un medidor comun.
+// usuario (HRV + riskScore). El color (glow, trazo y nivel) se
+// interpola por HUE segun el score de riesgo: verde (~0) ->
+// amarillo (~50) -> rojo (~100), con todos los shades intermedios.
+// Es el diferenciador vs Whoop hecho UI: tu fisiologia predicha.
 // ============================================================
 import React from "react";
-import { C, riskColor } from "./ui.jsx";
+import { C } from "./ui.jsx";
+
+// Mapea score 0..100 a un color HSL continuo:
+//   verde (hue 150) en riesgo bajo -> amarillo (hue 50) en ~50 -> rojo (hue 0) en 100.
+// Cuanto mayor el riesgo, mas se acerca al rojo. Muchos shades intermedios.
+export function riskHue(score) {
+  const s = Math.max(0, Math.min(100, score));
+  // hue decrece de 150 (verde) a 0 (rojo) linealmente con el score.
+  const hue = 150 - (s / 100) * 150;
+  return `hsl(${hue}, 80%, 55%)`;
+}
 
 export default function DigitalTwinRing({ today }) {
   const score = Math.round(today.riskScore ?? 0);
   const level = today.riskLevel || "BAJO";
-  const color = riskColor(level);
+  const color = riskHue(score);
 
   // Respiracion: mas lenta y calma si riesgo bajo; mas rapida/tensa si alto.
   const dur = level === "ALTO" ? 2.1 : level === "MODERADO" ? 3.1 : 4.3;
@@ -24,7 +35,7 @@ export default function DigitalTwinRing({ today }) {
   return (
     <div className="flex flex-col items-center">
       <div className="relative" style={{ width: size, height: size }}>
-        {/* glow que pulsa con la respiracion */}
+        {/* glow que pulsa con la respiracion, color segun riesgo */}
         <span
           aria-hidden
           className={`absolute inset-0 rounded-full ${breathe}`}
@@ -43,7 +54,7 @@ export default function DigitalTwinRing({ today }) {
           <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="url(#twinBody)" strokeWidth={0} />
           <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth={stroke} strokeLinecap="round"
             strokeDasharray={circumference} strokeDashoffset={offset}
-            style={{ transition: "stroke-dashoffset 1.1s cubic-bezier(.4,0,.2,1)", filter: `drop-shadow(0 0 10px ${color}66)` }} />
+            style={{ transition: "stroke-dashoffset 1.1s cubic-bezier(.4,0,.2,1), stroke 0.6s ease", filter: `drop-shadow(0 0 10px ${color}66)` }} />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           <span style={{ color: C.textFaint }} className="text-[10px] uppercase tracking-[0.2em] mb-1">BioScore</span>
