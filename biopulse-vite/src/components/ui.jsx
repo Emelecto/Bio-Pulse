@@ -214,17 +214,42 @@ export const GLOBAL_STYLE = `
     backdrop-filter: blur(20px) saturate(140%);
     border: 1px solid rgba(255, 255, 255, 0.10) !important;
   }
-  /* Fondo con degradado suave (wallpaper) para que el blur tenga profundidad */
+  /* === Fondo con luz animada tipo iOS 26 (liquid glass wallpaper) === */
+  /* Blobs de luz que derivan lentamente y SE MUEVEN segun la tab activa
+     via la variable --active-hue (la setea TabBar al cambiar de pestaña). */
   body::before {
+    content: "";
+    position: fixed;
+    inset: -20%;
+    z-index: -2;
+    background:
+      radial-gradient(42% 38% at 18% 12%, rgba(0, 245, 212, 0.20), transparent 60%),
+      radial-gradient(40% 36% at 86% 20%, rgba(129, 140, 248, 0.20), transparent 60%),
+      radial-gradient(46% 42% at 50% 92%, rgba(255, 183, 3, 0.10), transparent 60%);
+    filter: blur(40px) saturate(130%);
+    transform: translate3d(calc(var(--bg-x, 0) * 1px), calc(var(--bg-y, 0) * 1px), 0) scale(1.1);
+    transition: transform 1.1s cubic-bezier(0.22, 1, 0.36, 1);
+    animation: ios26-drift 18s ease-in-out infinite alternate;
+    pointer-events: none;
+  }
+  /* Capa de grano sutil para profundidad de vidrio */
+  body::after {
     content: "";
     position: fixed;
     inset: 0;
     z-index: -1;
     background:
-      radial-gradient(60% 50% at 18% 8%, rgba(0, 245, 212, 0.16), transparent 60%),
-      radial-gradient(55% 45% at 88% 22%, rgba(129, 140, 248, 0.16), transparent 60%),
-      radial-gradient(50% 50% at 50% 100%, rgba(255, 183, 3, 0.08), transparent 60%);
+      radial-gradient(120% 80% at 50% -10%, rgba(255,255,255,0.05), transparent 50%),
+      radial-gradient(100% 60% at 50% 110%, rgba(0,0,0,0.25), transparent 60%);
     pointer-events: none;
+  }
+  @keyframes ios26-drift {
+    0%   { transform: translate3d(-2%, -1%, 0) scale(1.08) rotate(0deg); }
+    50%  { transform: translate3d(2%, 1.5%, 0) scale(1.14) rotate(2deg); }
+    100% { transform: translate3d(-1%, 2%, 0) scale(1.10) rotate(-1.5deg); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    body::before { animation: none; }
   }
   @media (prefers-reduced-motion: reduce) {
     .pulse-ribbon path { animation: none; stroke-dashoffset: 0; }
