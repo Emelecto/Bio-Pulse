@@ -5,9 +5,9 @@
 // del anillo respirante, pero con semantica invertida a riesgo.
 // ============================================================
 import React from "react";
-import { C } from "./ui.jsx";
+import { C, scoreColor } from "./ui.jsx";
 
-// Color por nivel de BioScore: BUENO (alto) -> verde, MEDIO -> amarillo, BAJO -> rojo.
+// Color por nivel de BioScore: usa scoreColor (escala continua verde->rojo).
 export function bioColor(level) {
   return level === "BAJO" ? C.rose : level === "MEDIO" ? C.amber : C.teal;
 }
@@ -15,7 +15,7 @@ export function bioColor(level) {
 export default function BioScoreRing({ today }) {
   const score = Math.round(today.bioScore ?? 0);
   const level = today.bioLevel || "BUENO";
-  const color = bioColor(level);
+  const color = scoreColor(score, "higher");
 
   const dur = level === "BAJO" ? 4.3 : level === "MEDIO" ? 3.3 : 2.3; // mas calmado si esta bien
   const breathe = `dt-breathe-${level === "BAJO" ? "ALTO" : level === "MEDIO" ? "MODERADO" : "BAJO"}`;

@@ -24,7 +24,23 @@ export function applyTheme(theme) {
 }
 export const riskColor = (level) =>
   level === "ALTO" ? C.rose : level === "MODERADO" ? C.amber : C.teal;
-export const MONTHS = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+
+// Color continuo por score, interpolado cada 5 puntos.
+// kind 'higher' => mayor score = mejor (verde vivo arriba, rojo abajo).
+// kind 'lower'  => mayor score = peor  (rojo arriba, verde abajo) [riesgo].
+// Recorre: verde vivo -> verde tenue -> amarillo -> naranja -> rojo, segun
+// la "calidad" (0=malo .. 100=bueno para 'higher'; invertido para 'lower').
+export function scoreColor(score, kind = "higher") {
+  const s = Math.max(0, Math.min(100, score));
+  const q = kind === "lower" ? 100 - s : s; // calidad 0..100 (0 malo, 100 bueno)
+  // Hue: 145 (verde vivo) a 0 (rojo). Bajamos cada 5 pts.
+  const hue = (q / 100) * 145;
+  // Saturacion/lightness para que se vea "vivo" arriba y palido/tenue hacia el medio.
+  const sat = 70 + (q / 100) * 20;       // 70%..90%
+  const light = 52 - Math.abs(q - 50) / 50 * 8; // mas claro (tenue) cerca de 50
+  return `hsl(${hue.toFixed(0)}, ${sat.toFixed(0)}%, ${light.toFixed(0)}%)`;
+}
+
 export const fmtDate = (d) => `${String(d.getDate()).padStart(2,"0")} ${MONTHS[d.getMonth()]}`;
 
 // Curva suave (Catmull-Rom -> Bezier cubica) que PASA por todos los

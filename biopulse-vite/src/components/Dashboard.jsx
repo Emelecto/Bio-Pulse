@@ -6,6 +6,7 @@ import React, { useMemo, useState, useEffect } from "react";
 import { Moon, Footprints, Flame, Heart, Wind, BatteryMedium, Activity, AlertTriangle, Info, Settings2, Sparkles } from "lucide-react";
 import { C, riskColor, MetricCard, SectionHeader } from "./ui.jsx";
 import BioScoreRing from "./BioScoreRing.jsx";
+import RiskScoreRing from "./RiskScoreRing.jsx";
 import { getLocalAdvice, getLocalReply } from "../coach/coachEngine.js";
 
 // Métricas que el usuario puede poner en el medidor principal.
@@ -138,7 +139,7 @@ export default function Dashboard({ data, today, riskThreshold, onOpenSettings, 
 
       {/* SECCION RIESGO: score de riesgo (anomalias/fatiga), mas pequeña pero detallada */}
       <div style={{ background: C.card, border: `1px solid ${C.border}` }} className="rounded-3xl p-4 tab-fade-in">
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
             <div style={{ background: `${rColor}1A`, color: rColor }} className="w-8 h-8 rounded-xl flex items-center justify-center">
               <AlertTriangle size={16} />
@@ -149,14 +150,14 @@ export default function Dashboard({ data, today, riskThreshold, onOpenSettings, 
             </div>
           </div>
           <span style={{ color: rColor, background: `${rColor}1A`, border: `1px solid ${rColor}44` }} className="text-[11px] font-bold px-2.5 py-1 rounded-full tabular-nums">
-            {today.riskScore}/100 · {today.riskLevel}
+            {today.riskLevel}
           </span>
         </div>
-        {/* Barra de progreso del riesgo */}
-        <div className="w-full h-2 rounded-full overflow-hidden" style={{ background: C.bgSoft }}>
-          <div style={{ width: `${today.riskScore}%`, background: rColor }} className="h-full rounded-full transition-all duration-700" />
+        {/* Ring pequeño y centrado */}
+        <div className="flex justify-center py-2">
+          <RiskScoreRing today={today} />
         </div>
-        <p style={{ color: C.textMuted }} className="text-[12px] leading-snug mt-3">
+        <p style={{ color: C.textMuted }} className="text-[12px] leading-snug mt-1 text-center">
           {today.riskLevel === "BAJO" ? "Sin señales de riesgo fuera de tu rango habitual." : "Detectamos señales fuera de tu rango habitual en los últimos días."}
         </p>
         {today.flags.length > 0 && (
