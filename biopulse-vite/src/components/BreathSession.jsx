@@ -64,23 +64,25 @@ export default function BreathSession({ open, onClose, today }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center px-6" style={{ background: "rgba(2,6,12,0.72)", backdropFilter: "blur(8px)" }}>
-      <div className="relative flex flex-col items-center glass rounded-[28px] p-7 w-full max-w-sm" style={{ background: C.card, border: `1px solid ${C.border}` }}>
+      <div className="relative flex flex-col items-center rounded-[28px] p-7 w-full max-w-sm" style={{ background: C.card, border: `1px solid ${C.border}` }}>
         <button onClick={onClose} aria-label="Cerrar" className="absolute top-4 right-4 w-9 h-9 rounded-full flex items-center justify-center active:scale-95 transition-transform" style={{ background: C.bgSoft, color: C.textMuted }}>
           ✕
         </button>
 
         <span style={{ color: C.textFaint }} className="text-[11px] uppercase tracking-[0.25em] mb-5">Respiración guiada</span>
 
-        <div className="relative" style={{ width: size, height: size }}>
+        <div className="relative" style={{ width: size, height: size, overflow: "visible" }}>
           <span
             aria-hidden
             className="absolute inset-[14%] rounded-full"
-            style={{ background: `radial-gradient(circle, ${color}2A 0%, ${color}14 40%, transparent 65%)`, transition: "transform 4s ease-in-out", transform: `scale(${scale})` }}
+            style={{ background: `radial-gradient(circle, ${color}2A 0%, ${color}14 40%, transparent 65%)`, transition: "transform 4s ease-in-out", transform: `scale(${scale})`, overflow: "visible" }}
           />
-          <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }} className="relative">
-            <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={C.borderSoft} strokeWidth={stroke} />
-            <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth={stroke} strokeLinecap="round"
-              style={{ transition: "transform 4s ease-in-out", transform: `scale(${scale})`, transformOrigin: "center", filter: `drop-shadow(0 0 12px ${color}66)` }} />
+          <svg width={size} height={size} style={{ transform: "rotate(-90deg)", overflow: "visible" }} className="relative">
+            <g style={{ transition: "transform 4s ease-in-out", transform: `scale(${scale})`, transformOrigin: "center", transformBox: "fill-box" }}>
+              <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={C.borderSoft} strokeWidth={stroke} />
+              <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth={stroke} strokeLinecap="round"
+                style={{ filter: `drop-shadow(0 0 12px ${color}66)` }} />
+            </g>
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
             <span style={{ color }} className="text-2xl font-semibold tracking-wide" style={{ transition: "opacity 0.4s" }}>{phase === "inhala" ? "Inhala" : "Exhala"}</span>

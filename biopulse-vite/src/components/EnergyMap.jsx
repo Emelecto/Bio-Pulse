@@ -44,6 +44,13 @@ export default function EnergyMap({ map }) {
         <path d={line} fill="none" stroke="url(#energyLine)" strokeWidth={2.5} strokeLinecap="round" vectorEffect="non-scaling-stroke" />
       </svg>
 
+      {/* Eje de horas: etiquetas cada 2h para leer la energia por franja */}
+      <div className="flex justify-between px-1 mt-1">
+        {["08:00", "10:00", "12:00", "14:00", "16:00", "18:00", "20:00", "22:00"].map((t) => (
+          <span key={t} style={{ color: C.textFaint, fontFamily: "'IBM Plex Mono', monospace" }} className="text-[9px]">{t}</span>
+        ))}
+      </div>
+
       <div className="grid grid-cols-3 gap-2 mt-3">
         {map.chips.map((c, i) => (
           <div key={i} style={{ background: C.bgSoft, border: `1px solid ${C.borderSoft}` }} className="rounded-xl px-2 py-2 text-center">

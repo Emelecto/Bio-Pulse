@@ -52,16 +52,6 @@ export default function BioScoreRing({ today, onBreathe }) {
           <span style={{ color: C.text, fontFamily: "'IBM Plex Mono', monospace" }} className="text-5xl font-semibold tabular-nums leading-none">{score}</span>
           <span style={{ color, fontFamily: "'IBM Plex Mono', monospace" }} className="text-[11px] font-semibold mt-1.5 tracking-wide">{level}</span>
         </div>
-        {onBreathe && (
-          <button
-            onClick={onBreathe}
-            style={{ background: `${color}1A`, color, border: `1px solid ${color}44` }}
-            className="mt-3 text-[12px] font-semibold px-3.5 py-1.5 rounded-full active:scale-95 transition-transform flex items-center gap-1.5"
-            aria-label="Iniciar respiración guiada"
-          >
-            <span style={{ fontSize: 13, lineHeight: 1 }}>◐</span> Respirar 2 min
-          </button>
-        )}
       </div>
       <p style={{ color: C.textFaint }} className="text-[11px] text-center mt-2 max-w-[15rem]">
         Tu índice de bienestar y rendimiento a partir de HRV, RHR, recuperación y sueño.

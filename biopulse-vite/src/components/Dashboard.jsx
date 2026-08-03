@@ -54,6 +54,16 @@ export default function Dashboard({ data, today, riskThreshold, onOpenSettings, 
         </div>
         <div className="relative flex flex-col items-center gap-2 pt-2">
           <BioScoreRing today={today} onBreathe={onBreathe} />
+          {onBreathe && (
+            <button
+              onClick={onBreathe}
+              style={{ background: "transparent", color: C.teal, border: `1px solid ${C.teal}44` }}
+              className="text-[12px] font-semibold px-3.5 py-1.5 rounded-full active:scale-95 transition-transform flex items-center gap-1.5"
+              aria-label="Iniciar respiración guiada"
+            >
+              <span style={{ fontSize: 13, lineHeight: 1 }}>◐</span> Respirar 2 min
+            </button>
+          )}
           <p style={{ color: C.textMuted }} className="text-[13px] leading-snug max-w-[18rem] text-center">
             {today.bioLevel === "BUENO" ? "Tu bienestar está alto. Mantén tus hábitos actuales." : today.bioLevel === "MEDIO" ? "Bienestar aceptable. Hay margen para mejorar tu recuperación." : "Bienestar bajo: prioriza descanso y sueño hoy."}
           </p>
