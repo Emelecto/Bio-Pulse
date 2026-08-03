@@ -45,7 +45,7 @@ export default function Sleep({ data }) {
 
   // Mini metrica de la noche (reusa el estilo de tarjeta).
   const MiniStat = ({ icon: Icon, label, value, unit, color }) => (
-    <div style={{ background: C.card, border: `1px solid ${C.border}` }} className="rounded-2xl p-3 flex flex-col gap-1.5">
+    <div style={{ background: C.card, border: `1px solid ${C.border}` }} className="glass rounded-2xl p-3 flex flex-col gap-1.5">
       <div className="flex items-center gap-1.5">
         <div style={{ background: `${color}1A`, color }} className="w-6 h-6 rounded-lg flex items-center justify-center"><Icon size={13} /></div>
         <span style={{ color: C.textMuted }} className="text-[10.5px] font-medium leading-tight">{label}</span>
@@ -84,7 +84,7 @@ export default function Sleep({ data }) {
       </div>
 
       {/* GRAFICO CON SELECTOR DE NOCHE */}
-      <div style={{ background: C.card, border: `1px solid ${C.border}` }} className="rounded-3xl p-4">
+      <div style={{ background: C.card, border: `1px solid ${C.border}` }} className="glass rounded-3xl p-4">
         <div className="flex items-center justify-between mb-3">
           <span style={{ color: C.text }} className="text-sm font-semibold">Horas y calidad</span>
           <div className="flex items-center gap-1">
@@ -116,7 +116,7 @@ export default function Sleep({ data }) {
         <span style={{ color: C.textFaint }} className="text-[11px] uppercase tracking-wider font-medium mb-3 block">Consejos para dormir mejor</span>
         <div className="flex flex-col gap-2">
           {tips.map((t, i) => (
-            <div key={i} style={{ background: C.card, border: `1px solid ${C.border}` }} className="rounded-2xl p-3 flex items-start gap-2">
+            <div key={i} style={{ background: C.card, border: `1px solid ${C.border}` }} className="glass rounded-2xl p-3 flex items-start gap-2">
               <Lightbulb size={15} style={{ color: C.amber }} className="mt-0.5 shrink-0" />
               <span style={{ color: C.text }} className="text-[12.5px] leading-snug">{t}</span>
             </div>
@@ -129,7 +129,7 @@ export default function Sleep({ data }) {
 
 function SleepStat({ icon: Icon, label, value, unit, color }) {
   return (
-    <div style={{ background: C.card, border: `1px solid ${C.border}` }} className="rounded-2xl p-4 flex flex-col gap-2">
+    <div style={{ background: C.card, border: `1px solid ${C.border}` }} className="glass rounded-2xl p-4 flex flex-col gap-2">
       <div className="flex items-center gap-2">
         <div style={{ background: `${color}1A`, color }} className="w-7 h-7 rounded-lg flex items-center justify-center"><Icon size={15} /></div>
         <span style={{ color: C.textMuted }} className="text-xs font-medium">{label}</span>

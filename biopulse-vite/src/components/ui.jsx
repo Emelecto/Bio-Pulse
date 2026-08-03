@@ -5,13 +5,13 @@
 import React from "react";
 
 export const C_DARK = {
-  bg: "#050A10", bgSoft: "#0A121D", card: "#0D1828", cardAlt: "#122034",
+  bg: "#050A10", bgSoft: "#0A121D", card: "rgba(13,24,40,0.55)", cardAlt: "rgba(18,32,52,0.55)",
   border: "#1C2E46", borderSoft: "#15253A",
   teal: "#00F5D4", amber: "#FFB703", rose: "#FF0055", purple: "#818CF8",
   text: "#F3F7FA", textMuted: "#91A8BE", textFaint: "#56728C",
 };
 export const C_LIGHT = {
-  bg: "#F0F4F8", bgSoft: "#FFFFFF", card: "#FFFFFF", cardAlt: "#E8EEF5",
+  bg: "#F0F4F8", bgSoft: "#FFFFFF", card: "rgba(255,255,255,0.6)", cardAlt: "rgba(232,238,245,0.6)",
   border: "#CBD5E1", borderSoft: "#E2E8F0",
   teal: "#059669", amber: "#D97706", rose: "#DC2626", purple: "#6366F1",
   text: "#0F172A", textMuted: "#475569", textFaint: "#64748B",
@@ -85,7 +85,7 @@ export function MetricCard({ icon: Icon, label, value, unit, delta, sparkData, a
   return (
     <div
       style={{ background: C.card, border: `1px solid ${C.border}`, boxShadow: `0 4px 14px ${C.bg}80` }}
-      className="rounded-2xl p-3.5 flex flex-col gap-2.5 min-w-0 transition-all duration-300 hover:-translate-y-0.5 hover:border-teal/30 active:scale-[0.98] overflow-hidden relative"
+      className="glass rounded-2xl p-3.5 flex flex-col gap-2.5 min-w-0 transition-all duration-300 hover:-translate-y-0.5 hover:border-teal/30 active:scale-[0.98] overflow-hidden relative"
     >
       <div className="flex items-center gap-2 min-w-0">
         <div style={{ background: `${accent}1A`, color: accent }} className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0">
@@ -176,7 +176,7 @@ export function SectionHeader({ index, title, subtitle, icon: Icon }) {
 export const ChartTooltip = ({ active, payload, label }) => {
   if (!active || !payload || !payload.length) return null;
   return (
-    <div style={{ background: C.cardAlt, border: `1px solid ${C.border}` }} className="rounded-lg px-3 py-2 text-xs">
+    <div style={{ background: C.cardAlt, border: `1px solid ${C.border}` }} className="glass rounded-lg px-3 py-2 text-xs">
       <div style={{ color: C.textFaint }} className="mb-1">{label}</div>
       {payload.map((p, i) => (
         <div key={i} style={{ color: p.color || C.text, fontFamily: "'IBM Plex Mono', monospace" }}>
@@ -207,6 +207,25 @@ export const GLOBAL_STYLE = `
   .typing-dot:nth-child(1) { animation-delay: -0.32s; }
   .typing-dot:nth-child(2) { animation-delay: -0.16s; }
   @keyframes typingBounce { 0%, 80%, 100% { transform: scale(0.4); opacity: 0.3; } 40% { transform: scale(1); opacity: 1; } }
+
+  /* === Efecto vidrio tipo iOS 26: cajas translucidas con blur de fondo === */
+  .glass {
+    -webkit-backdrop-filter: blur(20px) saturate(140%);
+    backdrop-filter: blur(20px) saturate(140%);
+    border: 1px solid rgba(255, 255, 255, 0.10) !important;
+  }
+  /* Fondo con degradado suave (wallpaper) para que el blur tenga profundidad */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background:
+      radial-gradient(60% 50% at 18% 8%, rgba(0, 245, 212, 0.16), transparent 60%),
+      radial-gradient(55% 45% at 88% 22%, rgba(129, 140, 248, 0.16), transparent 60%),
+      radial-gradient(50% 50% at 50% 100%, rgba(255, 183, 3, 0.08), transparent 60%);
+    pointer-events: none;
+  }
   @media (prefers-reduced-motion: reduce) {
     .pulse-ribbon path { animation: none; stroke-dashoffset: 0; }
     .animate-spin, .animate-pulse-slow { animation: none; }

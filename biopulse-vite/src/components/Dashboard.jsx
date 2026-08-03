@@ -138,7 +138,7 @@ export default function Dashboard({ data, today, riskThreshold, onOpenSettings, 
       </div>
 
       {/* SECCION RIESGO: score de riesgo (anomalias/fatiga), mas pequeña pero detallada */}
-      <div style={{ background: C.card, border: `1px solid ${C.border}` }} className="rounded-3xl p-4 tab-fade-in">
+      <div style={{ background: C.card, border: `1px solid ${C.border}` }} className="glass rounded-3xl p-4 tab-fade-in">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
             <div style={{ background: `${rColor}1A`, color: rColor }} className="w-8 h-8 rounded-xl flex items-center justify-center">
@@ -173,7 +173,7 @@ export default function Dashboard({ data, today, riskThreshold, onOpenSettings, 
       </div>
 
       {/* COACH CHAT ASISTENTE DE IA */}
-      <div style={{ background: C.card, border: `1px solid ${C.teal}55` }} className="rounded-3xl p-4 tab-fade-in">
+      <div style={{ background: C.card, border: `1px solid ${C.teal}55` }} className="glass rounded-3xl p-4 tab-fade-in">
         <div className="flex items-center gap-2 mb-3">
           <div style={{ background: `${C.teal}1A`, color: C.teal }} className="w-8 h-8 rounded-xl flex items-center justify-center">
             <Sparkles size={16} />

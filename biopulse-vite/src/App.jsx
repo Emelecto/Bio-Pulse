@@ -20,7 +20,8 @@ import Technical from "./components/Technical.jsx";
 // y re-renderiza toda la app (y todos los tabs) al cambiar el tema, haciendo
 // que el toggle claro/oscuro se vea de inmediato (sin salir de Config).
 function AppInner() {
-  const { theme } = useTheme(); // consume contexto REAL -> re-render global al cambiar tema
+  const { theme, forceVersion } = useTheme(); // consume contexto REAL -> re-render global al cambiar tema
+  void forceVersion; // fuerza re-render en cada cambio de tema (incl. mutacion de C)
   const hook = useBiopulseData();
   const {
     customData, demoData, customSourceLabel, historyRange, setHistoryRange,
@@ -51,7 +52,7 @@ function AppInner() {
           </div>
           <button onClick={() => setShowModal(true)}
             style={{ background: C.card, border: `1px solid ${C.border}`, color: C.textMuted }}
-            className="w-10 h-10 rounded-full flex items-center justify-center active:scale-95 transition-transform" aria-label="Fuente de datos">
+            className="glass w-10 h-10 rounded-full flex items-center justify-center active:scale-95 transition-transform" aria-label="Fuente de datos">
             <Settings2 size={14} />
           </button>
         </div>

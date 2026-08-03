@@ -51,7 +51,7 @@ export default function Technical() {
       </div>
 
       {/* ROC */}
-      <div style={{ background: C.card, border: `1px solid ${C.border}` }} className="rounded-3xl p-4">
+      <div style={{ background: C.card, border: `1px solid ${C.border}` }} className="glass rounded-3xl p-4">
         <div className="flex items-center justify-between mb-2">
           <span style={{ color: C.text }} className="text-sm font-semibold">Curva ROC — {model}</span>
           <span style={{ color: MODEL_COLORS[model] }} className="text-xs font-semibold">AUC {roc.auc.toFixed(3)}</span>
@@ -73,7 +73,7 @@ export default function Technical() {
         <span style={{ color: C.textFaint }} className="text-[11px] uppercase tracking-wider font-medium mb-3 block">5-fold cross-validation (hold-out 20%)</span>
         <div className="grid grid-cols-2 gap-3">
           {Object.entries(CV_SUMMARY[model]).map(([k, [mean, sd]]) => (
-            <div key={k} style={{ background: C.card, border: `1px solid ${C.border}` }} className="rounded-2xl p-3">
+            <div key={k} style={{ background: C.card, border: `1px solid ${C.border}` }} className="glass rounded-2xl p-3">
               <span style={{ color: C.textMuted }} className="text-[11px]">{k.replace("_", "-")}</span>
               <div style={{ color: C.text, fontFamily: "'IBM Plex Mono', monospace" }} className="text-lg font-semibold">{mean.toFixed(3)}</div>
               <span style={{ color: C.textFaint }} className="text-[10px]">±{sd.toFixed(3)}</span>
@@ -83,7 +83,7 @@ export default function Technical() {
       </div>
 
       {/* MATRIZ DE CONFUSIÓN */}
-      <div style={{ background: C.card, border: `1px solid ${C.border}` }} className="rounded-3xl p-4">
+      <div style={{ background: C.card, border: `1px solid ${C.border}` }} className="glass rounded-3xl p-4">
         <span style={{ color: C.text }} className="text-sm font-semibold block mb-3">Matriz de confusión — Random Forest (n = 20,000)</span>
         <div className="grid grid-cols-2 gap-2">
           <Cell label="TN" value={CONFUSION_RF.tn} color={C.teal} />
@@ -97,7 +97,7 @@ export default function Technical() {
       </div>
 
       {/* IMPORTANCIA */}
-      <div style={{ background: C.card, border: `1px solid ${C.border}` }} className="rounded-3xl p-4">
+      <div style={{ background: C.card, border: `1px solid ${C.border}` }} className="glass rounded-3xl p-4">
         <span style={{ color: C.text }} className="text-sm font-semibold block mb-3">Importancia de variables (Random Forest)</span>
         <div className="flex flex-col gap-2">
           {RF_IMPORTANCE.map((f) => (

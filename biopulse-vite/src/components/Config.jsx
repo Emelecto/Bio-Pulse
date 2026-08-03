@@ -39,7 +39,7 @@ export default function Config({ data, hook }) {
   return (
     <div className="flex flex-col gap-5">
       {/* CUENTA / AUTH */}
-      <div style={{ background: C.card, border: `1px solid ${C.border}` }} className="rounded-3xl p-4">
+      <div style={{ background: C.card, border: `1px solid ${C.border}` }} className="glass rounded-3xl p-4">
         <div className="flex items-center gap-2 mb-4">
           <User size={16} style={{ color: C.teal }} />
           <span style={{ color: C.text }} className="text-sm font-semibold">Cuenta</span>
@@ -134,7 +134,7 @@ export default function Config({ data, hook }) {
       </div>
 
       {/* APARIENCIA / TEMA */}
-      <div style={{ background: C.card, border: `1px solid ${C.border}` }} className="rounded-3xl p-4">
+      <div style={{ background: C.card, border: `1px solid ${C.border}` }} className="glass rounded-3xl p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span style={{ color: C.text }} className="text-sm font-semibold">Tema</span>
@@ -161,7 +161,7 @@ export default function Config({ data, hook }) {
       </div>
 
       {/* CONECTAR DATOS */}
-      <div style={{ background: C.card, border: `1px solid ${C.border}` }} className="rounded-3xl p-4">
+      <div style={{ background: C.card, border: `1px solid ${C.border}` }} className="glass rounded-3xl p-4">
         <div className="flex items-center gap-2 mb-3">
           <Key size={16} style={{ color: C.amber }} />
           <span style={{ color: C.text }} className="text-sm font-semibold">Conectar datos</span>
@@ -189,7 +189,7 @@ export default function Config({ data, hook }) {
       </div>
 
       {/* UMBRAL DE RIESGO */}
-      <div style={{ background: C.card, border: `1px solid ${C.border}` }} className="rounded-3xl p-4">
+      <div style={{ background: C.card, border: `1px solid ${C.border}` }} className="glass rounded-3xl p-4">
         <div className="flex items-center justify-between mb-2">
           <span style={{ color: C.text }} className="text-sm font-semibold">Umbral de alerta</span>
           <span style={{ color: C.teal, fontFamily: "'IBM Plex Mono', monospace" }} className="text-sm">{riskThreshold}</span>
@@ -200,7 +200,7 @@ export default function Config({ data, hook }) {
       </div>
 
       {/* ORGANIZACIÓN */}
-      <div style={{ background: C.card, border: `1px solid ${C.border}` }} className="rounded-3xl p-4">
+      <div style={{ background: C.card, border: `1px solid ${C.border}` }} className="glass rounded-3xl p-4">
         <div className="flex items-center gap-2 mb-3">
           <RefreshCw size={16} style={{ color: C.purple }} />
           <span style={{ color: C.text }} className="text-sm font-semibold">Organización</span>

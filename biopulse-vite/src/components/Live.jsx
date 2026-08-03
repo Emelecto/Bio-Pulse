@@ -81,7 +81,7 @@ export default function Live({ today }) {
 
 function LiveCard({ icon: Icon, label, value, unit, color, spark }) {
   return (
-    <div style={{ background: C.card, border: `1px solid ${C.border}` }} className="rounded-2xl p-4 flex flex-col gap-2">
+    <div style={{ background: C.card, border: `1px solid ${C.border}` }} className="glass rounded-2xl p-4 flex flex-col gap-2">
       <div className="flex items-center gap-2">
         <div style={{ background: `${color}1A`, color }} className="w-7 h-7 rounded-lg flex items-center justify-center"><Icon size={15} /></div>
         <span style={{ color: C.textMuted }} className="text-xs font-medium truncate">{label}</span>

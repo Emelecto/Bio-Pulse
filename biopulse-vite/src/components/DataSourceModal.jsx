@@ -69,7 +69,7 @@ export default function DataSourceModal({
                 const status = syncStatus[provider];
                 const displayName = provider === "fitbit" ? "Fitbit" : "Whoop";
                 return (
-                  <div key={provider} style={{ background: C.card, border: `1px solid ${C.border}` }} className="rounded-2xl p-4">
+                  <div key={provider} style={{ background: C.card, border: `1px solid ${C.border}` }} className="glass rounded-2xl p-4">
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-2">
                         <span style={{ color: C.text, fontFamily: "'Space Grotesk', sans-serif" }} className="text-sm font-semibold">{displayName}</span>
@@ -125,7 +125,7 @@ export default function DataSourceModal({
               <p style={{ color: C.textFaint }} className="text-[12px] leading-relaxed">
                 Sube un CSV exportado de tu wearable. Detectamos las columnas automáticamente; puedes corregirlas abajo.
               </p>
-              <label style={{ background: C.card, border: `1.5px dashed ${C.border}` }} className="rounded-2xl p-6 flex flex-col items-center gap-2 cursor-pointer">
+              <label style={{ background: C.card, border: `1.5px dashed ${C.border}` }} className="glass rounded-2xl p-6 flex flex-col items-center gap-2 cursor-pointer">
                 <Upload size={20} style={{ color: C.teal }} />
                 <span style={{ color: C.text }} className="text-xs font-medium">{csvFileName ? csvFileName : "Toca para elegir un archivo .csv"}</span>
                 {csvRowCount > 0 && <span style={{ color: C.textFaint }} className="text-[11px]">{csvRowCount} filas detectadas</span>}
