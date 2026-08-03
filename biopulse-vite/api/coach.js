@@ -1,5 +1,5 @@
 // ============================================================
-// api/coach.js — Vercel Function (Node): coach de IA (Gemini).
+// api/coach.js — Vercel Function (Node): coach de IA (Groq, gratis).
 // Soporta CHAT conversacional contextualizado en las metricas del usuario.
 //
 // MEJORAS (integracion coach v2):
@@ -11,12 +11,12 @@
 //  - FALLBACK JSON: si no hay API key o falla el stream, devuelve
 //    { reply } / { advice } en JSON plano.
 //
-// SDK: usa @google/genai (SDK actual de Gemini). Acepta API keys tanto
-// del formato clasico (AIza...) como del nuevo sistema de AI Studio
-// (AQ...), asociadas al proyecto gen-lang-client-*.
+// PROVEEDOR: Groq (https://console.groq.com). Modelo gratuito
+// `llama-3.3-70b-versatile`. SDK: groq-sdk (API compatible OpenAI).
+// Variable de entorno: GROQ_API_KEY.
 //
 // SEGURIDAD (capas):
-//  - GOOGLE_AI_API_KEY solo en variables de entorno de Vercel (server).
+//  - GROQ_API_KEY solo en variables de entorno de Vercel (server).
 //  - Rate limit por IP (memoria, por instancia): chat 10/min, advice 20/min.
 //  - Validacion estricta de input:
 //      * mensaje: texto, 1-280 chars, sin inyeccion de prompt.
@@ -25,9 +25,9 @@
 //  - Stateless: no persistimos historial ni datos de salud en servidor.
 //  - System prompt medical-safe + filtro de temas fuera de alcance.
 // ============================================================
-import { GoogleGenAI } from "@google/genai";
+import Groq from "groq-sdk";
 
-const MODEL = process.env.GEMINI_MODEL || "gemini-2.0-flash";
+const MODEL = process.env.GROQ_MODEL || "llama-3.3-70b-versatile";
 const DISCLAIMER = "Esto no es consejo médico. Ante síntomas persistentes o fiebre, consulta a un profesional.";
 
 // Contexto por pantalla (D2): el coach "sabe" en qué tab está el usuario.
@@ -47,8 +47,9 @@ const hits = new Map(); // ip -> { chat: [ts], advice: [ts] }
 
 function rateLimited(ip, kind) {
   const now = Date.now();
+  const day = now - WINDOW_MS;
   const rec = hits.get(ip) || { chat: [], advice: [] };
-  const arr = rec[kind].filter((t) => now - t < WINDOW_MS);
+  const arr = rec[kind].filter((t) => t > day);
   arr.push(now);
   rec[kind] = arr;
   hits.set(ip, rec);
@@ -101,7 +102,7 @@ function validateHistory(history) {
   for (const h of history.slice(-6)) { // maximo 6 turnos
     if (h && typeof h.role === "string" && typeof h.text === "string") {
       const t = h.text.slice(0, 200).trim();
-      if (t) clean.push({ role: h.role === "user" ? "user" : "model", text: t });
+      if (t) clean.push({ role: h.role === "user" ? "user" : "assistant", text: t });
     }
   }
   return clean;
@@ -158,21 +159,25 @@ export default async function handler(req, res) {
   const metrics = sanitizeMetrics(body.metrics || {});
   const metricLine = Object.entries(metrics).map(([k, v]) => `${k}=${v}`).join(", ");
   const tab = typeof body.tab === "string" && TAB_CTX[body.tab] ? body.tab : "dash";
-  const apiKey = process.env.GOOGLE_AI_API_KEY;
+  const apiKey = process.env.GROQ_API_KEY;
 
   // ---------- MODO ADVICE (sin mensaje): consejo único automatico ----------
   if (!isChat) {
     if (Object.keys(metrics).length === 0) return send(res, 400, { error: "Sin métricas válidas." });
     if (!apiKey) return send(res, 200, { advice: "", fallback: true });
     try {
-      const ai = new GoogleGenAI({ apiKey });
-      const result = await ai.models.generateContent({
+      const groq = new Groq({ apiKey });
+      const completion = await groq.chat.completions.create({
         model: MODEL,
-        contents: [`${buildSystemPrompt(tab)}\n\nMétricas de hoy: ${metricLine}. Da UN consejo corto y accionable.`],
-        config: { maxOutputTokens: 160, temperature: 0.6 },
+        messages: [
+          { role: "system", content: buildSystemPrompt(tab) },
+          { role: "user", content: `Métricas de hoy: ${metricLine}. Da UN consejo corto y accionable.` },
+        ],
+        max_tokens: 160,
+        temperature: 0.6,
       });
-      const text = (result.text || "").trim();
-      return send(res, 200, { advice: text, source: "gemini" });
+      const text = (completion.choices?.[0]?.message?.content || "").trim();
+      return send(res, 200, { advice: text, source: "groq" });
     } catch {
       return send(res, 200, { advice: "", fallback: true });
     }
@@ -189,21 +194,26 @@ export default async function handler(req, res) {
   }
 
   try {
-    const ai = new GoogleGenAI({ apiKey });
-    const convo = [buildSystemPrompt(tab), `Métricas actuales del usuario: ${metricLine || "no disponibles"}.`];
-    for (const h of history) convo.push(h.role === "user" ? `Usuario: ${h.text}` : `Coach: ${h.text}`);
-    convo.push(`Usuario: ${v.text}`);
+    const groq = new Groq({ apiKey });
+    const messages = [
+      { role: "system", content: buildSystemPrompt(tab) },
+      { role: "system", content: `Métricas actuales del usuario: ${metricLine || "no disponibles"}.` },
+    ];
+    for (const h of history) messages.push({ role: h.role, content: h.text });
+    messages.push({ role: "user", content: v.text });
 
     // STREAMING (C2): iteramos los chunks del modelo y los enviamos por SSE.
-    const result = await ai.models.generateContentStream({
+    const stream = await groq.chat.completions.create({
       model: MODEL,
-      contents: convo,
-      config: { maxOutputTokens: 240, temperature: 0.5 },
+      messages,
+      max_tokens: 240,
+      temperature: 0.5,
+      stream: true,
     });
     sseInit(res);
     let full = "";
-    for await (const chunk of result.stream) {
-      const part = chunk.text;
+    for await (const chunk of stream) {
+      const part = chunk.choices?.[0]?.delta?.content || "";
       if (!part) continue;
       full += part;
       sseChunk(res, part);
@@ -218,6 +228,3 @@ export default async function handler(req, res) {
     if (!res.writableEnded) res.end();
   }
 }
-
-// Wrapper para no romper si sanitizeMetrics se renombra.
-function sanitizeSafe(m) { return sanitizeMetrics(m); }

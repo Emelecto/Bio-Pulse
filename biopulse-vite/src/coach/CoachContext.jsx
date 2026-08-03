@@ -58,7 +58,7 @@ export function CoachProvider({ children, today }) {
   const todayRef = useRef(today);
   todayRef.current = today;
 
-  // Mejora el saludo con Gemini al montar (sin bloquear), igual que antes.
+  // Mejora el saludo con Groq al montar (sin bloquear), igual que antes.
   useEffect(() => {
     let alive = true;
     const enhance = async () => {
@@ -89,7 +89,7 @@ export function CoachProvider({ children, today }) {
   const closeCoach = useCallback(() => setOpen(false), []);
   const toggleCoach = useCallback(() => setOpen((o) => !o), []);
 
-  // Envía un mensaje: intenta streaming Gemini; si falla, fallback local.
+  // Envía un mensaje: intenta streaming Groq; si falla, fallback local.
   const send = useCallback(async (rawText) => {
     const text = (rawText || "").toString().trim();
     if (!text || busy) return;
@@ -107,9 +107,9 @@ export function CoachProvider({ children, today }) {
         const copy = m.slice();
         const last = copy[copy.length - 1];
         if (last && last.__streaming === streamingId) {
-          copy[copy.length - 1] = { role: "coach", text: last.text + chunk, __streaming: streamingId, source: "gemini" };
+          copy[copy.length - 1] = { role: "coach", text: last.text + chunk, __streaming: streamingId, source: "groq" };
         } else {
-          copy.push({ role: "coach", text: chunk, __streaming: streamingId, source: "gemini" });
+          copy.push({ role: "coach", text: chunk, __streaming: streamingId, source: "groq" });
         }
         return copy;
       });
@@ -171,7 +171,7 @@ export function CoachProvider({ children, today }) {
         const j = await res.json().catch(() => ({}));
         if (j && j.reply && j.reply.length) {
           setMessages((m) => [...m, { role: "coach", text: j.reply, source: j.source }]);
-          if (j.source === "gemini") setAiConnected(true);
+          if (j.source === "groq") setAiConnected(true);
         } else {
           fallbackLocal();
         }

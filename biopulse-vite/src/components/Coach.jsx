@@ -96,7 +96,7 @@ export default function Coach() {
             <div style={{ color: C.text }} className="text-sm font-semibold leading-tight">Coach BioPulse</div>
             <div className="text-[10px] flex items-center gap-1" style={{ color: aiConnected ? C.teal : C.textFaint }}>
               <span style={{ width: 6, height: 6, borderRadius: 999, background: aiConnected ? C.teal : C.textFaint, display: "inline-block", boxShadow: aiConnected ? `0 0 8px ${C.teal}` : "none" }} />
-              {aiConnected ? "IA conectada (Gemini · streaming)" : "Modo local · añade GOOGLE AI API key para IA"}
+              {aiConnected ? "IA conectada (Groq · streaming)" : "Modo local · añade GROQ API key para IA"}
             </div>
           </div>
           <button onClick={closeCoach} aria-label="Cerrar" className="ml-auto" style={{ color: C.textFaint, padding: 6 }}>

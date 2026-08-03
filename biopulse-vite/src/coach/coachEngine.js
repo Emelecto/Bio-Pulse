@@ -2,7 +2,7 @@
 // COACH ENGINE — selecciona el banco de mensajes segun las
 // metricas del dia y rota el mensaje en cada entrada a la app.
 // Tambien expone getCoachAdvice(metrics, {llm}) para usar un LLM
-// real (Gemini) cuando el backend lo provea; si falla, cae a bancos.
+// real (Groq) cuando el backend lo provea; si falla, cae a bancos.
 // ============================================================
 import { COACH_BANKS } from "./coachMessages.js";
 
