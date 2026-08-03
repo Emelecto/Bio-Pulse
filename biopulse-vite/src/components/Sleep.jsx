@@ -15,7 +15,7 @@ export default function Sleep({ data }) {
   const avgHours = (sleepDays.reduce((a, d) => a + d.sleepHours, 0) / sleepDays.length).toFixed(1);
   const avgScore = Math.round(sleepDays.reduce((a, d) => a + d.sleepScore, 0) / sleepDays.length);
   const avgEff = Math.round(sleepDays.reduce((a, d) => a + d.sleepEff, 0) / sleepDays.length);
-  const avgWake = (sleepDays.reduce((a, d) => a + (d.wakeUps || 0), 0) / sleepDays.length).toFixed(1);
+  const avgWake = Math.round(sleepDays.reduce((a, d) => a + (d.wakeUps || 0), 0) / sleepDays.length);
 
   // calidad por día (score) y horas
   const chart = sleepDays.map((d) => ({ name: `${d.date.getDate()}/${d.date.getMonth() + 1}`, horas: d.sleepHours, score: d.sleepScore }));
@@ -24,7 +24,7 @@ export default function Sleep({ data }) {
   const tips = [];
   if (avgHours < 7) tips.push("Duermes poco en promedio. Subir a 7–8 h mejora HRV y recuperación.");
   if (avgEff < 85) tips.push("Tu eficiencia es baja: reduce pantallas y luz 1 h antes de dormir.");
-  if (avgWake > 2) tips.push("Despertares frecuentes: evita cafeína tarde y controla la temperatura de la habitación.");
+  if (avgWake > 2) tips.push("Micro-despertares frecuentes: evita cafeína tarde y controla la temperatura de la habitación.");
   if (avgScore >= 85) tips.push("Buena calidad de sueño. Mantén tu rutina actual para sostenerla.");
   if (tips.length === 0) tips.push("Tus métricas de sueño son sólidas. Sigue así y vigila consistencia.");
 
@@ -36,7 +36,7 @@ export default function Sleep({ data }) {
           <SleepStat icon={Clock} label="Horas promedio" value={avgHours} unit="h" color={C.teal} />
           <SleepStat icon={Moon} label="Sleep score" value={avgScore} unit="/100" color={C.amber} />
           <SleepStat icon={Zap} label="Eficiencia" value={avgEff} unit="%" color={C.purple} />
-          <SleepStat icon={BedDouble} label="Despertares" value={avgWake} unit="" color={C.rose} />
+          <SleepStat icon={BedDouble} label="Micro-despertares" value={avgWake} unit="" color={C.rose} />
         </div>
       </div>
 

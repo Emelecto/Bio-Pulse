@@ -27,24 +27,36 @@ export const riskColor = (level) =>
 export const MONTHS = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
 export const fmtDate = (d) => `${String(d.getDate()).padStart(2,"0")} ${MONTHS[d.getMonth()]}`;
 
+// Curva suave (Catmull-Rom -> Bezier cubica) que PASA por todos los
+// puntos. Es el estandar tipo Apple Health / Oura: natural, sin los
+// "picos de montana" de la interpolacion por midpoint.
+export function buildSmoothPath(pts) {
+  if (!pts || pts.length < 2) return "";
+  let d = `M${pts[0][0].toFixed(2)},${pts[0][1].toFixed(2)}`;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[i - 1] || pts[i];
+    const p1 = pts[i];
+    const p2 = pts[i + 1];
+    const p3 = pts[i + 2] || p2;
+    const cp1x = p1[0] + (p2[0] - p0[0]) / 6;
+    const cp1y = p1[1] + (p2[1] - p0[1]) / 6;
+    const cp2x = p2[0] - (p3[0] - p1[0]) / 6;
+    const cp2y = p2[1] - (p3[1] - p1[1]) / 6;
+    d += ` C${cp1x.toFixed(2)},${cp1y.toFixed(2)} ${cp2x.toFixed(2)},${cp2y.toFixed(2)} ${p2[0].toFixed(2)},${p2[1].toFixed(2)}`;
+  }
+  return d;
+}
+
 export function Sparkline({ data, color, height = 24 }) {
   if (!data || data.length < 2) return null;
   const w = 100, h = height;
   const min = Math.min(...data), max = Math.max(...data);
   const range = max - min || 1;
   const pts = data.map((v, i) => [(i / (data.length - 1)) * w, h - ((v - min) / range) * h]);
-  // Curva suave (catmull-rom -> bezier) para que se vea natural y fluida.
-  let d = `M${pts[0][0].toFixed(2)},${pts[0][1].toFixed(2)}`;
-  for (let i = 0; i < pts.length - 1; i++) {
-    const [x0, y0] = pts[i];
-    const [x1, y1] = pts[i + 1];
-    const mx = (x0 + x1) / 2;
-    d += ` C${x0.toFixed(2)},${y0.toFixed(2)} ${mx.toFixed(2)},${y0.toFixed(2)} ${mx.toFixed(2)},${((y0 + y1) / 2).toFixed(2)}`;
-    d += ` C${mx.toFixed(2)},${y1.toFixed(2)} ${mx.toFixed(2)},${y1.toFixed(2)} ${x1.toFixed(2)},${y1.toFixed(2)}`;
-  }
+  const d = buildSmoothPath(pts);
   return (
     <svg viewBox={`0 0 ${w} ${h}`} width="100%" height={height} preserveAspectRatio="none" role="img" aria-label="Mini gráfica de tendencia">
-      <path d={d} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" opacity="0.9" />
+      <path d={d} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" opacity="0.9" vectorEffect="non-scaling-stroke" />
     </svg>
   );
 }

@@ -4,7 +4,7 @@
 // ============================================================
 import React, { useEffect, useRef, useState } from "react";
 import { Heart, Activity, Wind, BatteryMedium } from "lucide-react";
-import { C, Sparkline } from "./ui.jsx";
+import { C, Sparkline, buildSmoothPath } from "./ui.jsx";
 
 // Genera una onda tipo ECG para un BPM dado.
 function ecgWave(bpm, points = 120) {
@@ -40,15 +40,7 @@ export default function Live({ today }) {
   const w = 600, h = 120, min = -1.5, max = 1.6;
   const range = max - min;
   const pts = wave.map((v, i) => [(i / (wave.length - 1)) * w, h - ((v - min) / range) * h]);
-  // Curva suave (catmull-rom -> bezier) para que la onda se vea natural y fluida.
-  let d = `M${pts[0][0].toFixed(2)},${pts[0][1].toFixed(2)}`;
-  for (let i = 0; i < pts.length - 1; i++) {
-    const [x0, y0] = pts[i];
-    const [x1, y1] = pts[i + 1];
-    const mx = (x0 + x1) / 2;
-    d += ` C${x0.toFixed(2)},${y0.toFixed(2)} ${mx.toFixed(2)},${y0.toFixed(2)} ${mx.toFixed(2)},${((y0 + y1) / 2).toFixed(2)}`;
-    d += ` C${mx.toFixed(2)},${y1.toFixed(2)} ${mx.toFixed(2)},${y1.toFixed(2)} ${x1.toFixed(2)},${y1.toFixed(2)}`;
-  }
+  const d = buildSmoothPath(pts);
 
   return (
     <div className="flex flex-col gap-5">
@@ -63,7 +55,7 @@ export default function Live({ today }) {
           <span style={{ color: C.textFaint }} className="text-sm mb-1">bpm</span>
         </div>
         <svg viewBox={`0 0 ${w} ${h}`} width="100%" height={h} preserveAspectRatio="none" className="mt-2" role="img" aria-label="Onda de latidos en vivo">
-          <path d={d} fill="none" stroke={C.rose} strokeWidth="2" style={{ filter: `drop-shadow(0 0 6px ${C.rose}66)` }} />
+          <path d={d} fill="none" stroke={C.rose} strokeWidth="2" vectorEffect="non-scaling-stroke" style={{ filter: `drop-shadow(0 0 6px ${C.rose}66)` }} />
         </svg>
       </div>
 
