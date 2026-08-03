@@ -1,45 +1,89 @@
 // ============================================================
-// TAB SLEEP — calidad de sueño: métricas, gráfica 7/14/30 días,
-// y consejos para mejorar.
+// TAB SLEEP — calidad de sueño centrada en la noche seleccionada:
+// hero Sleep Score (anillo) + metricas de ESA noche, y grafico
+// donde el usuario elige ver cualquier noche en detalle.
+// El Sleep Score se calcula con un modelo de prediccion (bioUtils)
+// desde las metricas reales de la noche (no se inventan datos).
 // ============================================================
 import React, { useState } from "react";
-import { Moon, BedDouble, Clock, Zap, Lightbulb } from "lucide-react";
+import { Moon, BedDouble, Clock, Zap, HeartPulse, Activity, Lightbulb } from "lucide-react";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Cell } from "recharts";
-import { C, ChartTooltip, SectionHeader } from "./ui.jsx";
+import { C, ChartTooltip } from "./ui.jsx";
+import SleepScoreRing from "./SleepScoreRing.jsx";
+import { computeSleepScore } from "../lib/bioUtils.js";
 
 export default function Sleep({ data }) {
   const [range, setRange] = useState(14);
+  const [selectedIdx, setSelectedIdx] = useState(data.length - 1); // noche anterior por defecto
   const sleepDays = data.slice(-range);
 
-  // promedios
-  const avgHours = (sleepDays.reduce((a, d) => a + d.sleepHours, 0) / sleepDays.length).toFixed(1);
-  const avgScore = Math.round(sleepDays.reduce((a, d) => a + d.sleepScore, 0) / sleepDays.length);
-  const avgEff = Math.round(sleepDays.reduce((a, d) => a + d.sleepEff, 0) / sleepDays.length);
-  const avgWake = Math.round(sleepDays.reduce((a, d) => a + (d.wakeUps || 0), 0) / sleepDays.length);
+  // La noche que se muestra en detalle (por defecto la ultima).
+  const selInView = Math.max(0, Math.min(selectedIdx, data.length - 1));
+  const night = data[selInView];
+  const sleepObj = computeSleepScore(night);
+  const deepMin = Math.round(sleepObj.deepSleepFrac * night.sleepHours * 60);
+  const sleepRhr = sleepObj.sleepRhr;
 
-  // calidad por día (score) y horas
-  const chart = sleepDays.map((d) => ({ name: `${d.date.getDate()}/${d.date.getMonth() + 1}`, horas: d.sleepHours, score: d.sleepScore }));
-  const minH = Math.min(...sleepDays.map((d) => d.sleepHours));
+  // calidad por dia (score + horas) para el grafico
+  const chart = sleepDays.map((d, i) => {
+    const globalIdx = data.indexOf(d);
+    return {
+      name: `${d.date.getDate()}/${d.date.getMonth() + 1}`,
+      horas: d.sleepHours,
+      score: computeSleepScore(d).score,
+      idx: globalIdx,
+    };
+  });
 
+  // Consejos segun la noche seleccionada (no promedio).
   const tips = [];
-  if (avgHours < 7) tips.push("Duermes poco en promedio. Subir a 7–8 h mejora HRV y recuperación.");
-  if (avgEff < 85) tips.push("Tu eficiencia es baja: reduce pantallas y luz 1 h antes de dormir.");
-  if (avgWake > 2) tips.push("Despertadas frecuentes: evita cafeína tarde y controla la temperatura de la habitación.");
-  if (avgScore >= 85) tips.push("Buena calidad de sueño. Mantén tu rutina actual para sostenerla.");
-  if (tips.length === 0) tips.push("Tus métricas de sueño son sólidas. Sigue así y vigila consistencia.");
+  if (night.sleepHours < 7) tips.push("Dormiste poco esta noche. Subir a 7–8 h mejora HRV y recuperación.");
+  if (night.sleepEff < 85) tips.push("Eficiencia baja: reduce pantallas y luz 1 h antes de dormir.");
+  if (night.wakeUps > 2) tips.push("Despertadas frecuentes: evita cafeína tarde y controla la temperatura de la habitación.");
+  if (sleepObj.score >= 85) tips.push("Buena calidad de sueño esta noche. Mantén tu rutina para sostenerla.");
+  if (tips.length === 0) tips.push("Tus métricas de sueño de esta noche son sólidas. Sigue así y vigila consistencia.");
+
+  // Mini metrica de la noche (reusa el estilo de tarjeta).
+  const MiniStat = ({ icon: Icon, label, value, unit, color }) => (
+    <div style={{ background: C.card, border: `1px solid ${C.border}` }} className="rounded-2xl p-3 flex flex-col gap-1.5">
+      <div className="flex items-center gap-1.5">
+        <div style={{ background: `${color}1A`, color }} className="w-6 h-6 rounded-lg flex items-center justify-center"><Icon size={13} /></div>
+        <span style={{ color: C.textMuted }} className="text-[10.5px] font-medium leading-tight">{label}</span>
+      </div>
+      <div className="flex items-baseline gap-1">
+        <span style={{ color: C.text, fontFamily: "'IBM Plex Mono', monospace" }} className="text-xl font-semibold tabular-nums">{value}</span>
+        <span style={{ color: C.textFaint }} className="text-[10px]">{unit}</span>
+      </div>
+    </div>
+  );
 
   return (
     <div className="flex flex-col gap-5">
-      <div>
-        <span style={{ color: C.textFaint }} className="text-[11px] uppercase tracking-wider font-medium mb-3 block">Resumen de sueño</span>
-        <div className="grid grid-cols-2 gap-3">
-          <SleepStat icon={Clock} label="Horas promedio" value={avgHours} unit="h" color={C.teal} />
-          <SleepStat icon={Moon} label="Sleep score" value={avgScore} unit="/100" color={C.amber} />
-          <SleepStat icon={Zap} label="Eficiencia" value={avgEff} unit="%" color={C.purple} />
-          <SleepStat icon={BedDouble} label="Despertadas" value={avgWake} unit="" color={C.rose} />
+      {/* HERO: Sleep Score de la noche seleccionada */}
+      <div style={{ background: `linear-gradient(160deg, ${C.card}, ${C.bgSoft})`, border: `1px solid ${C.border}` }} className="rounded-3xl p-5 pt-4 relative overflow-hidden flex flex-col items-center">
+        <span style={{ color: C.textFaint }} className="text-[11px] uppercase tracking-wider font-medium mb-2 self-start">
+          {selInView === data.length - 1 ? "Noche anterior" : `Noche del ${night.date.getDate()}/${night.date.getMonth() + 1}`}
+        </span>
+        <SleepScoreRing night={night} scoreObj={sleepObj} />
+        <div className="grid grid-cols-3 gap-2.5 w-full mt-4">
+          <MiniStat icon={Clock} label="Horas dormidas" value={night.sleepHours} unit="h" color={C.teal} />
+          <MiniStat icon={Moon} label="Sueño profundo" value={deepMin} unit="min" color={C.purple} />
+          <MiniStat icon={HeartPulse} label="RHR en sueño" value={sleepRhr} unit="bpm" color={C.rose} />
         </div>
       </div>
 
+      {/* DETALLE DE LA NOCHE SELECCIONADA */}
+      <div>
+        <span style={{ color: C.textFaint }} className="text-[11px] uppercase tracking-wider font-medium mb-3 block">Detalle de la noche</span>
+        <div className="grid grid-cols-2 gap-3">
+          <SleepStat icon={Zap} label="Eficiencia" value={night.sleepEff} unit="%" color={C.amber} />
+          <SleepStat icon={BedDouble} label="Despertadas" value={night.wakeUps} unit="" color={C.rose} />
+          <SleepStat icon={Activity} label="HRV" value={night.hrv} unit="ms" color={C.teal} />
+          <SleepStat icon={HeartPulse} label="RHR" value={night.rhr} unit="bpm" color={C.purple} />
+        </div>
+      </div>
+
+      {/* GRAFICO CON SELECTOR DE NOCHE */}
       <div style={{ background: C.card, border: `1px solid ${C.border}` }} className="rounded-3xl p-4">
         <div className="flex items-center justify-between mb-3">
           <span style={{ color: C.text }} className="text-sm font-semibold">Horas y calidad</span>
@@ -57,14 +101,17 @@ export default function Sleep({ data }) {
             <XAxis dataKey="name" tick={{ fill: C.textFaint, fontSize: 10 }} interval="preserveStartEnd" />
             <YAxis tick={{ fill: C.textFaint, fontSize: 10 }} domain={[0, 'dataMax + 1']} />
             <Tooltip content={<ChartTooltip />} cursor={{ fill: `${C.teal}11` }} />
-            <Bar dataKey="horas" radius={[4, 4, 0, 0]}>
-              {chart.map((_, i) => <Cell key={i} fill={C.teal} />)}
+            <Bar dataKey="horas" radius={[4, 4, 0, 0]} onClick={(d) => d && d.idx != null && setSelectedIdx(d.idx)}>
+              {chart.map((d, i) => (
+                <Cell key={i} fill={d.idx === selInView ? C.teal : `${C.teal}55`} cursor="pointer" />
+              ))}
             </Bar>
           </BarChart>
         </ResponsiveContainer>
-        <p style={{ color: C.textFaint }} className="text-[11px] mt-2">Barras = horas dormidas por día (últimos {range} días). Mínimo: {minH} h.</p>
+        <p style={{ color: C.textFaint }} className="text-[11px] mt-2">Toca una barra para ver el detalle de esa noche. Seleccionada: {night.date.getDate()}/{night.date.getMonth() + 1}.</p>
       </div>
 
+      {/* CONSEJOS */}
       <div>
         <span style={{ color: C.textFaint }} className="text-[11px] uppercase tracking-wider font-medium mb-3 block">Consejos para dormir mejor</span>
         <div className="flex flex-col gap-2">

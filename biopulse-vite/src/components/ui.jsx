@@ -52,10 +52,14 @@ export function Sparkline({ data, color, height = 24 }) {
   const w = 100, h = height;
   const min = Math.min(...data), max = Math.max(...data);
   const range = max - min || 1;
-  const pts = data.map((v, i) => [(i / (data.length - 1)) * w, h - ((v - min) / range) * h]);
+  // Padding vertical para que la curva suave (Catmull-Rom) nunca toque los
+  // bordes del box ni se salga de la tarjeta.
+  const pad = h * 0.14;
+  const usable = h - pad * 2;
+  const pts = data.map((v, i) => [(i / (data.length - 1)) * w, pad + usable - ((v - min) / range) * usable]);
   const d = buildSmoothPath(pts);
   return (
-    <svg viewBox={`0 0 ${w} ${h}`} width="100%" height={height} preserveAspectRatio="none" role="img" aria-label="Mini gráfica de tendencia">
+    <svg viewBox={`0 0 ${w} ${h}`} width="100%" height={height} preserveAspectRatio="none" style={{ overflow: "hidden" }} role="img" aria-label="Mini gráfica de tendencia">
       <path d={d} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" opacity="0.9" vectorEffect="non-scaling-stroke" />
     </svg>
   );

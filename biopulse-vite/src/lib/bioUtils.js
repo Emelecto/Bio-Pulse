@@ -96,6 +96,58 @@ export function generateSyntheticRawDays() {
   return days;
 }
 
+// ---- Modelo de Sleep Score (prediccion desde metricas reales de la noche) ----
+// No se inventan datos: sueño profundo y RHR-en-sueño se INFEREN a partir
+// de las metricas reales que ya existen (hrvDev, rhrDev, recovery, sleepEff,
+// wakeUps, rhr). Igual que sleepScore = 0.5*sleepEff + 0.5*sleepPerf ya existia.
+// Todas las componentes se normalizan 0..100 y se ponderan.
+
+// Fraccion de sueño profundo (0..1) inferida desde signos de buena recuperacion.
+// Biologicamente: mas HRV, menos RHR, mas recuperacion, mas eficiencia, menos
+// despertadas => mas sueño profundo. Se acota a un rango fisiologico 0.10..0.30.
+export function inferDeepSleepFrac(night) {
+  const hrvBonus = clamp((night.hrvDev || 0) / 12, -1, 1);      // HRV arriba del baseline
+  const rhrBonus = clamp(-(night.rhrDev || 0) / 8, -1, 1);       // RHR abajo del baseline
+  const recBonus = clamp((night.recovery - 66) / 30, -1, 1);      // recuperacion alta
+  const effBonus = clamp((night.sleepEff - 86) / 13, -1, 1);     // eficiencia alta
+  const wakePenalty = clamp(-(night.wakeUps || 0) / 4, -1, 0);   // despertadas bajan profundo
+  const s = 0.20 + 0.06 * (hrvBonus + rhrBonus + recBonus + effBonus) / 4 + 0.04 * wakePenalty;
+  return clamp(s, 0.10, 0.30);
+}
+
+// RHR durante el sueño (bpm) inferido: en descanso baja ~5-10 del RHR diurno,
+// modulado por recuperacion/HRV (mejor recuperacion => mas caida nocturna).
+export function inferSleepRhr(night) {
+  const drop = 5 + 5 * clamp((night.recovery - 50) / 50, 0, 1) + 2 * clamp((night.hrvDev || 0) / 12, -1, 1);
+  return Math.round(clamp(night.rhr - drop, 38, night.rhr));
+}
+
+// Sleep Score 0..100 desde las metricas reales de la noche.
+export function computeSleepScore(night) {
+  const hours = night.sleepHours || 0;
+  // Horas: optimo 7-9h => 100; decae fuera de rango.
+  const hc = clamp(100 - Math.abs(hours - 8) * 22, 0, 100);
+  // Eficiencia: ya es % 50-99.
+  const ec = clamp(night.sleepEff, 0, 100);
+  // Despertadas: 0-1 => 100, cae con mas.
+  const wc = clamp(100 - (night.wakeUps || 0) * 22, 0, 100);
+  // Sueño profundo: fraccion 0.10..0.30 => mapea a 0..100 (optimo ~0.22+).
+  const dsFrac = inferDeepSleepFrac(night);
+  const dc = clamp(((dsFrac - 0.10) / 0.20) * 100, 0, 100);
+  // RHR en sueño: menor = mejor. Rango tipico 40-60 => normalizado.
+  const sr = inferSleepRhr(night);
+  const sc = clamp(100 - (sr - 42) * 3, 0, 100);
+  // Recuperacion y HRV como refuerzo.
+  const rc = clamp(night.recovery, 0, 100);
+  const hc2 = clamp(50 + (night.hrvDev || 0) * 2.5, 0, 100);
+
+  const score = Math.round(
+    0.28 * hc + 0.20 * ec + 0.15 * wc + 0.15 * dc + 0.10 * sc + 0.07 * rc + 0.05 * hc2
+  );
+  const level = score >= 80 ? "BUENO" : score >= 60 ? "MEDIO" : "BAJO";
+  return { score: clamp(score, 0, 100), level, deepSleepFrac: dsFrac, sleepRhr: sr };
+}
+
 // ---- Pipeline: rawDays -> dias enriquecidos con scores y flags ----
 export function computePipeline(rawDaysInput) {
   const rawDays = rawDaysInput.slice().sort((a, b) => a.date - b.date);
