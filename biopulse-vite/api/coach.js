@@ -27,7 +27,7 @@
 // ============================================================
 import { GoogleGenAI } from "@google/genai";
 
-const MODEL = process.env.GEMINI_MODEL || "gemini-1.5-flash";
+const MODEL = process.env.GEMINI_MODEL || "gemini-2.0-flash";
 const DISCLAIMER = "Esto no es consejo médico. Ante síntomas persistentes o fiebre, consulta a un profesional.";
 
 // Contexto por pantalla (D2): el coach "sabe" en qué tab está el usuario.
