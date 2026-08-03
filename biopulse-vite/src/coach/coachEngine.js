@@ -54,6 +54,50 @@ export function getLocalAdvice(today) {
   return { profile, title: pick.t, advice: pick.a, source: "local" };
 }
 
+// Plan de accion de 3 pasos cuando el riesgo NO esta en BAJO. Coherente con
+// las flags reales del dia (fiebre, fatiga aguda, anomalias). Si el riesgo es
+// BAJO, devuelve null (el banner no se muestra).
+export function getActionPlan(today) {
+  const level = today.riskLevel || "BAJO";
+  if (level === "BAJO") return null;
+  const flags = today.flags || [];
+  const fever = flags.some((f) => /infeccioso|fiebre|temperatura/i.test(f));
+  const acute = flags.some((f) => /fatiga aguda/i.test(f));
+  const anomaly = flags.some((f) => /rango habitual/i.test(f));
+
+  let title, steps;
+  if (fever) {
+    title = "Posible proceso infeccioso";
+    steps = [
+      "Descansa 24h y evita entrenar hoy.",
+      "Hidrátate y monitorea tu temperatura.",
+      "Si la fiebre sube de 38°C o dura >48h, consulta a un médico.",
+    ];
+  } else if (acute) {
+    title = "Fatiga aguda detectada";
+    steps = [
+      "Baja el entreno a 50% de tu carga habitual.",
+      "Duerme al menos 8h esta noche.",
+      "Evita cafeína después de las 2pm y el alcohol hoy.",
+    ];
+  } else if (anomaly) {
+    title = "Métricas fuera de tu rango";
+    steps = [
+      "Reduce la carga de hoy (menos strain).",
+      "Prioriza sueño y recuperación.",
+      "Rehidrátate bien a lo largo del día.",
+    ];
+  } else {
+    title = "Riesgo elevado";
+    steps = [
+      "Toma el día con calma, sin sobreesfuerzo.",
+      "Duerme 7–8h para recuperar HRV.",
+      "Come y hidrátate bien para apoyar tu recuperación.",
+    ];
+  }
+  return { title, steps, level };
+}
+
 // Fallback local para CHAT: elige un tip coherente con la PREGUNTA del usuario
 // (palabras clave) y con el perfil del dia. Asi, sin API key, el coach sigue
 // pareciendo personalizado en lugar de soltar tips al azar.

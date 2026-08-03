@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>BioPulse · Prototipo Coach AI (A2+B1+C2+D2)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg:#0b0f14; --bgSoft:#11161d; --card:rgba(255,255,255,.06);
+    --border:rgba(255,255,255,.10); --text:#eef2f7; --textMuted:#9aa7b4; --textFaint:#5f6e7d;
+    --teal:#22d3c5; --rose:#fb7185; --amber:#fbbf24; --purple:#a78bfa;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%;background:#05070a;font-family:'Manrope',sans-serif;color:var(--text)}
+  /* Escritorio: marco de telefono */
+  .phone{position:relative;max-width:420px;margin:24px auto;height:860px;max-height:94vh;background:var(--bg);
+    border-radius:38px;border:1px solid rgba(255,255,255,.08);overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.6)}
+  .notch{position:absolute;top:0;left:50%;transform:translateX(-50%);width:130px;height:26px;background:#000;
+    border-bottom-left-radius:16px;border-bottom-right-radius:16px;z-index:40}
+  .scroll{position:absolute;inset:0;overflow-y:auto;padding:54px 16px 120px}
+  .header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding-top:6px}
+  .brand{display:flex;align-items:center;gap:8px;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:19px;letter-spacing:-.02em}
+  .brand .logo{width:28px;height:28px;border-radius:9px;background:var(--teal);display:flex;align-items:center;justify-content:center;color:#04110f}
+  .pill{font-size:11px;color:var(--textMuted);background:var(--card);border:1px solid var(--border);padding:6px 10px;border-radius:999px}
+
+  /* TARJETAS */
+  .card{background:var(--card);border:1px solid var(--border);border-radius:24px;padding:16px;margin-bottom:14px;backdrop-filter:blur(14px)}
+  .ringrow{display:flex;align-items:center;gap:16px}
+  .ring{width:96px;height:96px;border-radius:50%;flex:0 0 auto;display:flex;align-items:center;justify-content:center;
+    background:conic-gradient(var(--teal) 0 72%, rgba(255,255,255,.08) 72% 100%);position:relative}
+  .ring::after{content:"";position:absolute;inset:9px;border-radius:50%;background:var(--bgSoft)}
+  .ring span{position:relative;z-index:1;font-family:'Space Grotesk';font-weight:700;font-size:24px}
+  .seclabel{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--textFaint);margin:18px 0 10px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .metric{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:12px}
+  .metric .k{font-size:11px;color:var(--textMuted)}
+  .metric .v{font-family:'Space Grotesk';font-weight:700;font-size:20px;margin-top:2px}
+  .metric .u{font-size:11px;color:var(--textFaint)}
+  .badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;padding:4px 9px;border-radius:999px}
+  .badge.warn{color:var(--amber);background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.3)}
+  h3.tabtitle{font-family:'Space Grotesk';font-size:16px;margin:4px 0 10px}
+
+  /* TABBAR estilo iOS26 flotante */
+  .tabbar{position:absolute;left:50%;transform:translateX(-50%);bottom:14px;display:flex;gap:6px;
+    background:rgba(20,26,34,.72);backdrop-filter:blur(22px) saturate(160%);border:1px solid rgba(255,255,255,.14);
+    border-radius:999px;padding:7px;z-index:30;width:calc(100% - 36px);justify-content:space-between}
+  .tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:7px 0;border-radius:999px;
+    color:var(--textFaint);font-size:9.5px;font-weight:600;transition:.18s;cursor:pointer}
+  .tab.active{color:var(--teal);background:rgba(34,211,197,.12)}
+  .tab svg{width:20px;height:20px}
+
+  /* FAB coach siempre visible */
+  .fab{position:absolute;right:18px;bottom:84px;width:58px;height:58px;border-radius:20px;z-index:45;
+    background:linear-gradient(150deg,var(--teal),#0fb3a6);display:flex;align-items:center;justify-content:center;
+    color:#04110f;box-shadow:0 10px 30px rgba(34,211,197,.4);cursor:pointer;transition:transform .2s}
+  .fab:active{transform:scale(.92)}
+  .fab .ringpulse{position:absolute;inset:0;border-radius:20px;border:2px solid var(--teal);animation:pulse 2.4s infinite}
+  @keyframes pulse{0%{transform:scale(1);opacity:.6}70%{transform:scale(1.5);opacity:0}100%{opacity:0}}
+
+  /* BOTTOM-SHEET coach */
+  .scrim{position:absolute;inset:0;background:rgba(0,0,0,.5);z-index:50;opacity:0;pointer-events:none;transition:.25s}
+  .scrim.open{opacity:1;pointer-events:auto}
+  .sheet{position:absolute;left:0;right:0;bottom:0;height:72%;background:rgba(17,22,29,.92);
+    backdrop-filter:blur(30px) saturate(160%);border-top:1px solid rgba(255,255,255,.14);border-radius:28px 28px 0 0;
+    transform:translateY(102%);transition:transform .32s cubic-bezier(.2,.8,.2,1);z-index:55;display:flex;flex-direction:column;overflow:hidden}
+  .sheet.open{transform:translateY(0)}
+  .grab{width:38px;height:4px;border-radius:999px;background:rgba(255,255,255,.25);margin:10px auto 4px}
+  .sheethead{display:flex;align-items:center;gap:10px;padding:4px 16px 10px;border-bottom:1px solid var(--border)}
+  .sheethead .ava{width:34px;height:34px;border-radius:11px;background:rgba(34,211,197,.16);color:var(--teal);display:flex;align-items:center;justify-content:center}
+  .statusdot{width:7px;height:7px;border-radius:999px;background:var(--teal);display:inline-block;margin-right:5px;box-shadow:0 0 8px var(--teal)}
+  .conn{font-size:10.5px;color:var(--teal);display:flex;align-items:center}
+  .xclose{margin-left:auto;color:var(--textFaint);cursor:pointer;padding:6px}
+  .messages{flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+  .bub{max-width:84%;padding:9px 12px;border-radius:16px;font-size:13px;line-height:1.42}
+  .bub.coach{background:var(--card);border:1px solid var(--border);align-self:flex-start;border-bottom-left-radius:5px}
+  .bub.user{background:var(--teal);color:#04110f;align-self:flex-end;border-bottom-right-radius:5px}
+  .typing{display:inline-flex;gap:4px;padding:12px 14px}
+  .typing i{width:6px;height:6px;border-radius:999px;background:var(--textFaint);animation:blink 1.2s infinite}
+  .typing i:nth-child(2){animation-delay:.2s}.typing i:nth-child(3){animation-delay:.4s}
+  @keyframes blink{0%,60%,100%{opacity:.25}30%{opacity:1}}
+  .cursor{display:inline-block;width:2px;height:14px;background:var(--teal);margin-left:1px;vertical-align:-2px;animation:cur .8s steps(2) infinite}
+  @keyframes cur{50%{opacity:0}}
+
+  .chips{display:flex;gap:8px;overflow-x:auto;padding:8px 16px;border-top:1px solid var(--border);scrollbar-width:none}
+  .chips::-webkit-scrollbar{display:none}
+  .chip{flex:0 0 auto;font-size:12px;color:var(--textMuted);background:var(--card);border:1px solid var(--border);
+    padding:7px 12px;border-radius:999px;cursor:pointer;white-space:nowrap;transition:.15s}
+  .chip:active{background:rgba(34,211,197,.15);color:var(--teal)}
+  .composer{display:flex;gap:8px;align-items:center;padding:10px 16px 16px}
+  .composer input{flex:1;background:var(--bgSoft);border:1px solid var(--border);border-radius:14px;padding:11px 14px;
+    color:var(--text);font-size:13px;outline:none}
+  .send{width:42px;height:42px;border-radius:14px;background:var(--teal);color:#04110f;display:flex;align-items:center;justify-content:center;cursor:pointer;flex:0 0 auto}
+  .send:active{transform:scale(.92)}
+  .ctxnote{font-size:10px;color:var(--textFaint);text-align:center;padding:0 16px 8px}
+  .tabhidden{display:none}
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="notch"></div>
+
+  <!-- CONTENIDO POR PESTANA -->
+  <div class="scroll">
+    <!-- DASH -->
+    <div id="tab-dash">
+      <div class="header">
+        <div class="brand"><div class="logo">◆</div>BioPulse</div>
+        <div class="pill">Datos demo</div>
+      </div>
+      <div class="card">
+        <div class="ringrow">
+          <div class="ring"><span>78</span></div>
+          <div>
+            <h3 class="tabtitle">Tu BioScore hoy</h3>
+            <p style="color:var(--textMuted);font-size:13px;line-height:1.4;margin:0">Bienestar alto. Mantén tus hábitos actuales.</p>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="ringrow">
+          <div class="ring" style="background:conic-gradient(var(--amber) 0 58%,rgba(255,255,255,.08) 58% 100%)"><span>58</span></div>
+          <div>
+            <h3 class="tabtitle">Score de riesgo</h3>
+            <span class="badge warn">⚠ Riesgo MEDIO</span>
+            <p style="color:var(--textMuted);font-size:12px;margin:8px 0 0">Detectamos señales fuera de tu rango habitual.</p>
+          </div>
+        </div>
+      </div>
+      <div class="seclabel">Métricas de hoy</div>
+      <div class="grid2">
+        <div class="metric"><div class="k">HRV</div><div class="v">52<span class="u"> ms</span></div></div>
+        <div class="metric"><div class="k">RHR</div><div class="v">58<span class="u"> bpm</span></div></div>
+        <div class="metric"><div class="k">Sueño</div><div class="v">7.4<span class="u"> h</span></div></div>
+        <div class="metric"><div class="k">Recuperación</div><div class="v">71<span class="u"> %</span></div></div>
+      </div>
+    </div>
+
+    <!-- LIVE -->
+    <div id="tab-live" class="tabhidden">
+      <div class="header"><div class="brand"><div class="logo">◆</div>BioPulse</div><div class="pill">En vivo</div></div>
+      <div class="card">
+        <div class="ringrow">
+          <div class="ring" style="background:conic-gradient(var(--rose) 0 82%,rgba(255,255,255,.08) 82% 100%)"><span>124</span></div>
+          <div><h3 class="tabtitle">Frecuencia cardíaca</haz</h3><p style="color:var(--textMuted);font-size:13px;margin:0">124 bpm · Zona 3 (aeróbica). Estable en los últimos 2 min.</p></div>
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="metric"><div class="k">Strain</div><div class="v">11.2</div></div>
+        <div class="metric"><div class="k">Resp</div><div class="v">15<span class="u"> rpm</span></div></div>
+      </div>
+    </div>
+
+    <!-- SLEEP -->
+    <div id="tab-sleep" class="tabhidden">
+      <div class="header"><div class="brand"><div class="logo">◆</div>BioPulse</div><div class="pill">Sueño</div></div>
+      <div class="card">
+        <div class="ringrow">
+          <div class="ring" style="background:conic-gradient(var(--teal) 0 74%,rgba(255,255,255,.08) 74% 100%)"><span>74</span></div>
+          <div><h3 class="tabtitle">Sleep Score</h3><p style="color:var(--textMuted);font-size:13px;margin:0">7.4 h · 3 despertares · eficiencia 88%.</p></div>
+        </div>
+      </div>
+      <div class="metric"><div class="k">Sueño profundo</div><div class="v">1.8<span class="u"> h</span></div></div>
+    </div>
+
+    <!-- TECH -->
+    <div id="tab-tech" class="tabhidden">
+      <div class="header"><div class="brand"><div class="logo">◆</div>BioPulse</div><div class="pill">Técnico</div></div>
+      <div class="card">
+        <h3 class="tabtitle">Índice heurístico 0–100</h3>
+        <p style="color:var(--textMuted);font-size:12.5px;line-height:1.5;margin:0">Combina control estadístico (z-scores vs tu línea base), complejidad ApEn de la HRV, fatiga aguda e infección. No es diagnóstico.</p>
+      </div>
+      <div class="card"><p style="color:var(--textMuted);font-size:12.5px;margin:0">Pesa: HRV 30% · RHR 20% · Recup 20% · Resp 15% · Temp 15%</p></div>
+    </div>
+
+    <!-- CONFIG -->
+    <div id="tab-config" class="tabhidden">
+      <div class="header"><div class="brand"><div class="logo">◆</div>BioPulse</div><div class="pill">Ajustes</div></div>
+      <div class="card"><h3 class="tabtitle">Fuente de datos</h3><p style="color:var(--textMuted);font-size:12.5px;margin:0">Conecta Whoop / Apple Watch / Garmin o sube CSV.</p></div>
+      <div class="card"><h3 class="tabtitle">Tema</h3><p style="color:var(--textMuted);font-size:12.5px;margin:0">Claro / Oscuro (vidrio translúcido iOS 26).</p></div>
+    </div>
+  </div>
+
+  <!-- TABBAR -->
+  <div class="tabbar" id="tabbar">
+    <div class="tab" data-tab="tech"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h4l3 8 4-16 3 8h4"/></svg>Técnico</div>
+    <div class="tab" data-tab="live"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>Live</div>
+    <div class="tab active" data-tab="dash"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 13h4l3-9 4 18 3-9h4"/></svg>Inicio</div>
+    <div class="tab" data-tab="sleep"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/></svg>Sueño</div>
+    <div class="tab" data-tab="config"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Ajustes</div>
+  </div>
+
+  <!-- FAB -->
+  <div class="fab" id="fab"><div class="ringpulse"></div><svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M12 2l1.6 4.8L18 8.4l-4.4 1.6L12 15l-1.6-4.4L6 8.4l4.4-1.6z"/></svg></div>
+
+  <!-- SHEET COACH -->
+  <div class="scrim" id="scrim"></div>
+  <div class="sheet" id="sheet">
+    <div class="grab"></div>
+    <div class="sheethead">
+      <div class="ava">◆</div>
+      <div>
+        <div style="font-size:14px;font-weight:600">Coach BioPulse</div>
+        <div class="conn"><span class="statusdot"></span>IA conectada (Gemini · streaming)</div>
+      </div>
+      <div class="xclose" id="xclose">✕</div>
+    </div>
+    <div class="ctxnote" id="ctxnote">Contexto: pantalla Inicio</div>
+    <div class="messages" id="messages"></div>
+    <div class="chips" id="chips"></div>
+    <div class="composer">
+      <input id="input" placeholder="Pregúntale sobre tus métricas…" maxlength="280" />
+      <div class="send" id="send"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M3 11l18-8-8 18-2-7-8-3z"/></svg></div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============ ESTADO GLOBAL (simula CoachProvider A2: persiste entre tabs) ============ */
+const state = { tab:"dash", open:false, history:[] };
+
+/* Chips contextuales por pantalla (D2) */
+const CHIPS = {
+  dash:["Interpreta mis métricas de hoy","¿Qué significa mi riesgo 58?","Dame un plan de hoy"],
+  live:["¿Qué dice mi FC ahora?","¿Subo o bajo la intensidad?","¿Cuánto falta para recuperar?"],
+  sleep:["Explica mi sueño de anoche","¿Cómo mejoro mi sueño profundo?","¿Por qué me desperté 3 veces?"],
+  tech:["Explica el modelo en simple","¿Por qué mi score no es diagnóstico?","¿Qué es ApEn en mi HRV?"],
+  config:["¿Cómo conecto mi Whoop?","¿Es seguro mis datos?","¿Cómo subo un CSV?"]
+};
+const CTXNAME = {dash:"Inicio",live:"Live (en vivo)",sleep:"Sueño",tech:"Técnico",config:"Ajustes"};
+
+/* Respuestas simuladas contextuales (C2: streaming letra por letra) */
+const REPLIES = {
+  dash:[
+    "Tus métricas hoy: HRV 52 ms (buena), RHR 58 bpm y recuperación 71%. El riesgo 58 está en zona media por tu strain acumulado. Te sugiero entrenamiento de intensidad moderada y 8 h de sueño para bajarlo mañana.",
+    "Tu riesgo 58 sale de fatiga aguda + desviación de tu línea base. No es alerta roja, pero sí señal de no hacer HIIT hoy. Una caminata de 25 min y estiramiento cierran bien el día."
+  ],
+  live:[
+    "En este momento vas a 124 bpm en Zona 3, estable. Tu HRV en ejercicio aguanta bien. Si llevas más de 30 min, baja a Zona 2 unos 5 min para proteger la recuperación de mañana.",
+    "Vas bien. Strain 11.2 es carga sólida. Mantén el ritmo; si la respiración sube de 18 rpm, haz una pausa de 60 s."
+  ],
+  sleep:[
+    "Dormiste 7.4 h con 88% de eficiencia y solo 3 despertares: sueño de calidad. Lo que falta es sueño profundo (1.8 h). Evita pantallas 1 h antes y baja la habitación 2 °C para ganar profundo.",
+    "Tus 3 despertares son normales, pero el profundo está justo. La cafeína después de las 14 h y la cena pesada suelen recortarlo. Prueba cena ligera 3 noches y compáralo."
+  ],
+  tech:[
+    "El índice combina 4 cosas: tu línea base (z-scores), complejidad de la HRV (ApEn), fatiga aguda y señal de infección. No es un diagnóstico médico, es un semáforo de desviación personal.",
+    "ApEn mide cuán irregular es tu HRV. Más irregular = mejor adaptación autonómica. Si cae, tu cuerpo está en modo supervivencia. Por eso pesa 30% en tu score."
+  ],
+  config:[
+    "Conectar Whoop: en Ajustes → Fuente de datos → elige Whoop e inicia sesión con OAuth. Los datos entran cifrados y el coach los interpreta en vivo. También puedes subir un CSV.",
+    "Tus datos se guardan solo en tu dispositivo y en Supabase con tu cuenta. El coach no los comparte ni los usa para entrenar modelos externos."
+  ]
+};
+
+/* ============ RENDER ============ */
+const $ = (s)=>document.querySelector(s);
+const messagesEl = $("#messages");
+
+function renderMessages(){
+  messagesEl.innerHTML = state.history.map(m=>
+    `<div class="bub ${m.role}">${m.text}</div>`).join("");
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+function renderChips(){
+  $("#chips").innerHTML = (CHIPS[state.tab]||[]).map(c=>`<div class="chip">${c}</div>`).join("");
+  $("#chips").querySelectorAll(".chip").forEach(ch=>ch.onclick=()=>send(ch.textContent));
+  $("#ctxnote").textContent = "Contexto: pantalla " + CTXNAME[state.tab];
+}
+
+/* Streaming simulado (C2) */
+function streamReply(full){
+  const typing = document.createElement("div");
+  typing.className = "bub coach typing";
+  typing.innerHTML = "<i></i><i></i><i></i>";
+  messagesEl.appendChild(typing);
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+  let i=0;
+  const cur = document.createElement("span"); cur.className="cursor";
+  const textNode = document.createElement("span");
+  const live = document.createElement("div");
+  live.className="bub coach"; live.appendChild(textNode); live.appendChild(cur);
+  setTimeout(()=>{ typing.replaceWith(live); }, 650);
+  const t = setInterval(()=>{
+    i += Math.max(2, Math.round(full.length/45));
+    textNode.textContent = full.slice(0,i);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+    if(i>=full.length){ clearInterval(t); cur.remove(); state.history.push({role:"coach",text:full}); }
+  },28);
+}
+
+function send(text){
+  text = (text||$("#input").value).trim();
+  if(!text) return;
+  state.history.push({role:"user",text});
+  $("#input").value=""; renderMessages();
+  const pool = REPLIES[state.tab]||REPLIES.dash;
+  const reply = pool[Math.floor(Math.random()*pool.length)];
+  setTimeout(()=>streamReply(reply), 220);
+}
+
+/* ============ NAVEGACIÓN (el chat persiste = A2) ============ */
+document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>{
+  const tab = t.dataset.tab;
+  state.tab = tab;
+  document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active", x===t));
+  ["dash","live","sleep","tech","config"].forEach(id=>
+    $("#tab-"+id).classList.toggle("tabhidden", id!==tab));
+  if(state.open) renderChips();
+});
+
+/* ============ FAB / SHEET (B1) ============ */
+function openSheet(){
+  state.open=true;
+  $("#scrim").classList.add("open"); $("#sheet").classList.add("open");
+  renderChips();
+  if(state.history.length===0){
+    // consejo de apertura contextual
+    const pool=REPLIES[state.tab]; const first=pool[0];
+    setTimeout(()=>streamReply(first), 200);
+  }
+}
+function closeSheet(){ state.open=false; $("#scrim").classList.remove("open"); $("#sheet").classList.remove("open"); }
+$("#fab").onclick=openSheet;
+$("#xclose").onclick=closeSheet;
+$("#scrim").onclick=closeSheet;
+$("#send").onclick=()=>send();
+$("#input").addEventListener("keydown",e=>{ if(e.key==="Enter") send(); });
+
+/* arranque: mensaje inicial del día (modo local) */
+state.history.push({role:"coach", text:"Hola, soy tu Coach BioPulse. Estoy conectado con Gemini y leo tus métricas en vivo. ¿En qué pantalla estás? Te ayudo con eso."});
+renderMessages();
+</script>
+</body>
+</html>

@@ -7,6 +7,7 @@ import { Moon, Footprints, Flame, Heart, Wind, BatteryMedium, Activity, AlertTri
 import { C, riskColor, MetricCard, SectionHeader } from "./ui.jsx";
 import BioScoreRing from "./BioScoreRing.jsx";
 import RiskScoreRing from "./RiskScoreRing.jsx";
+import { getActionPlan } from "../coach/coachEngine.js";
 import { useCoach } from "../coach/CoachContext.jsx";
 
 // Métricas que el usuario puede poner en el medidor principal.
@@ -27,7 +28,7 @@ const SECONDARY_METRICS = [
   { key: "sleepHours", label: "Horas sueño", icon: Moon, unit: "h", color: C.teal },
 ];
 
-export default function Dashboard({ data, today, riskThreshold, onOpenSettings, onOpenCoachSettings }) {
+export default function Dashboard({ data, today, riskThreshold, onOpenSettings, onOpenCoachSettings, onBreathe }) {
   const { openCoach } = useCoach();
   const [primary, setPrimary] = useState("riskScore");
   const [visibleSecondary, setVisibleSecondary] = useState(SECONDARY_METRICS.map((m) => m.key));
@@ -52,7 +53,7 @@ export default function Dashboard({ data, today, riskThreshold, onOpenSettings, 
           </span>
         </div>
         <div className="relative flex flex-col items-center gap-2 pt-2">
-          <BioScoreRing today={today} />
+          <BioScoreRing today={today} onBreathe={onBreathe} />
           <p style={{ color: C.textMuted }} className="text-[13px] leading-snug max-w-[18rem] text-center">
             {today.bioLevel === "BUENO" ? "Tu bienestar está alto. Mantén tus hábitos actuales." : today.bioLevel === "MEDIO" ? "Bienestar aceptable. Hay margen para mejorar tu recuperación." : "Bienestar bajo: prioriza descanso y sueño hoy."}
           </p>
@@ -93,6 +94,34 @@ export default function Dashboard({ data, today, riskThreshold, onOpenSettings, 
           </div>
         )}
       </div>
+
+      {/* PLAN DE HOY: alerta accionable de 3 pasos (Coach) cuando el riesgo != BAJO */}
+      {(() => {
+        const plan = getActionPlan(today);
+        if (!plan) return null;
+        const accent = plan.level === "ALTO" ? C.rose : C.amber;
+        return (
+          <div style={{ background: `${accent}12`, border: `1px solid ${accent}44` }} className="glass rounded-3xl p-4 tab-fade-in">
+            <div className="flex items-center gap-2 mb-2">
+              <div style={{ background: `${accent}1A`, color: accent }} className="w-8 h-8 rounded-xl flex items-center justify-center">
+                <AlertTriangle size={16} />
+              </div>
+              <div>
+                <span style={{ color: C.text }} className="text-sm font-semibold block">Plan de hoy</span>
+                <span style={{ color: C.textFaint }} className="text-[10px]">{plan.title} · riesgo {plan.level}</span>
+              </div>
+            </div>
+            <ol className="space-y-1.5 mt-1">
+              {plan.steps.map((s, i) => (
+                <li key={i} className="flex items-start gap-2">
+                  <span style={{ background: accent, color: C.bg }} className="shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-bold mt-0.5">{i + 1}</span>
+                  <span style={{ color: C.text }} className="text-[12.5px] leading-snug">{s}</span>
+                </li>
+              ))}
+            </ol>
+          </div>
+        );
+      })()}
 
       {/* CTA COACH: abre el asistente flotante (el chat vive en <Coach/>) */}
       <button

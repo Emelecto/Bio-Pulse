@@ -19,6 +19,7 @@ import Live from "./components/Live.jsx";
 import Sleep from "./components/Sleep.jsx";
 import Config from "./components/Config.jsx";
 import Technical from "./components/Technical.jsx";
+import BreathSession from "./components/BreathSession.jsx";
 import Coach from "./components/Coach.jsx";
 import { CoachProvider, useCoach } from "./coach/CoachContext.jsx";
 
@@ -26,9 +27,10 @@ import { CoachProvider, useCoach } from "./coach/CoachContext.jsx";
 // y re-renderiza toda la app (y todos los tabs) al cambiar el tema, haciendo
 // que el toggle claro/oscuro se vea de inmediato (sin salir de Config).
 function AppInner({ hook }) {
-  const { theme, forceVersion } = useTheme(); // consume contexto REAL -> re-render global al cambiar tema
-  void forceVersion; // fuerza re-render en cada cambio de tema (incl. mutacion de C)
-  const { tab, setTab } = useCoach(); // tab vive en CoachProvider (persiste el chat entre tabs)
+  const { theme, forceVersion } = useTheme();
+  void forceVersion;
+  const { tab, setTab } = useCoach();
+  const [breathOpen, setBreathOpen] = useState(false);
   const {
     customData, demoData, customSourceLabel, historyRange, setHistoryRange,
     riskThreshold, setRiskThreshold, clearAllData, showModal, setShowModal,
@@ -63,11 +65,11 @@ function AppInner({ hook }) {
         </div>
 
         {/* TAB CONTENT */}
-        {tab === "dash" && <Dashboard data={data} today={today} riskThreshold={riskThreshold} onOpenSettings={() => setTab("config")} />}
+        {tab === "dash" && <Dashboard data={data} today={today} riskThreshold={riskThreshold} onOpenSettings={() => setTab("config")} onBreathe={() => setBreathOpen(true)} />}
         {tab === "live" && <Live today={today} />}
-        {tab === "sleep" && <Sleep data={data} />}
+        {tab === "sleep" && <Sleep data={data} onBreathe={() => setBreathOpen(true)} />}
         {tab === "config" && <Config data={data} hook={hook} onUseDemo={() => setShowModal(true)} />}
-        {tab === "tech" && <Technical />}
+        {tab === "tech" && <Technical data={data} />}
       </div>
 
       <TabBar active={tab} onChange={setTab} />
@@ -85,6 +87,9 @@ function AppInner({ hook }) {
 
       {/* COACH: FAB + bottom-sheet, montado UNA SOLA VEZ (no se desmonta al cambiar tab). */}
       <Coach />
+
+      {/* RESPIRACION GUIADA: overlay global, se abre desde cualquier tab. */}
+      <BreathSession open={breathOpen} onClose={() => setBreathOpen(false)} today={today} />
     </div>
   );
 }

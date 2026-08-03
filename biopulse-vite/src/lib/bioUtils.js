@@ -241,3 +241,69 @@ export function computePipeline(rawDaysInput) {
   }
   return raw;
 }
+
+// ============================================================
+// Mapa de energia del dia (Tecnico): infiere un perfil de energia a
+// lo largo del dia desde metricas reales de la noche/dia (sin datos
+// horarios inventados). Devuelve 15 muestras 8am..10pm (0..100) y 3 chips.
+// ============================================================
+export function computeEnergyMap(today, history) {
+  if (!today) return null;
+  const rec = today.recovery || 50;
+  const hrvDev = today.hrvDev || 0;
+  const sleep = today.sleepScore || 50;
+  const strain = today.dayStrain || 10;
+  const rhrDev = today.rhrDev || 0;
+
+  // Bases reales del dia.
+  const morningBase = clamp(40 + (rec - 50) * 0.6 + (sleep - 50) * 0.3 + hrvDev * 1.2, 0, 100);
+  const eveningBoost = clamp((hrvDev > 0 ? 18 : -6) + (strain > 8 ? -10 : 6) + (rhrDev < 0 ? 8 : -4), -25, 30);
+  const midDip = clamp((strain > 14 || rec < 45 ? 22 : 8), 0, 35);
+
+  // 15 franjas de 8:00 a 22:00 (cada 1h).
+  const samples = [];
+  for (let h = 8; h <= 22; h++) {
+    let v;
+    if (h <= 11) v = morningBase - (11 - h) * 2;            // amaneces y bajas un poco hasta el mediodia
+    else if (h <= 15) v = morningBase - midDip + (h - 11) * 3; // valle a las ~15h
+    else if (h <= 18) v = morningBase - midDip + 12 - (h - 15) * 2; // rebote tarde
+    else v = morningBase + eveningBoost - (h - 18) * 4;       // segundo aire que baja al anochecer
+    samples.push({ h, v: Math.round(clamp(v, 5, 100)) });
+  }
+  const peak = samples.reduce((a, b) => (b.v > a.v ? b : a), samples[0]);
+  const valley = samples.reduce((a, b) => (b.v < a.v ? b : a), samples[0]);
+  const fmt = (h) => `${String(h).padStart(2, "0")}:00`;
+  return {
+    samples,
+    chips: [
+      { icon: "💪", label: "Mejor entrenar", time: fmt(peak.h) },
+      { icon: "🧠", label: "Reuniones clave", time: fmt(samples.reduce((a, b) => (b.v > a.v && b.h < 13 ? b : a), samples[0]).h) },
+      { icon: "😴", label: "Valle de energía", time: fmt(valley.h) },
+    ],
+  };
+}
+
+// ============================================================
+// Proyeccion de riesgo a 3 dias (Tecnico): regresion lineal sobre los
+// ultimos 7 dias de riskScore, proyecta +1 y +3 dias (clamp 0..100).
+// Honesto: etiquetado como proyeccion de tendencia, no prediccion medica.
+// ============================================================
+export function forecastRisk(history) {
+  if (!history || history.length < 3) return null;
+  const series = history.slice(-7).map((d) => d.riskScore ?? 0);
+  const n = series.length;
+  const xs = series.map((_, i) => i);
+  const meanX = xs.reduce((a, b) => a + b, 0) / n;
+  const meanY = series.reduce((a, b) => a + b, 0) / n;
+  let num = 0, den = 0;
+  for (let i = 0; i < n; i++) { num += (xs[i] - meanX) * (series[i] - meanY); den += (xs[i] - meanX) ** 2; }
+  const slope = den ? num / den : 0;
+  const todayScore = series[n - 1];
+  const project = (days) => Math.round(clamp(todayScore + slope * days, 0, 100));
+  return {
+    today: todayScore,
+    plus1: project(1),
+    plus3: project(3),
+    trendUp: slope > 1.5,
+  };
+}

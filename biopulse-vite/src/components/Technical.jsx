@@ -4,9 +4,12 @@
 // en ciencia de datos.
 // ============================================================
 import React, { useState } from "react";
-import { Sigma, GitBranch, FlaskConical, Scale, Info } from "lucide-react";
+import { Sigma, GitBranch, FlaskConical, Scale, Info, Sparkles } from "lucide-react";
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine } from "recharts";
 import { C, ChartTooltip, SectionHeader } from "./ui.jsx";
+import { computeEnergyMap, forecastRisk } from "../lib/bioUtils.js";
+import EnergyMap from "./EnergyMap.jsx";
+import RiskForecast from "./RiskForecast.jsx";
 
 const MODEL_COLORS = { "Regresión Logística": C.purple, "Random Forest": C.teal, "Gradient Boosting": C.amber };
 const ROC_DATA = {
@@ -27,12 +30,29 @@ const RF_IMPORTANCE = [
   { name: "Strain diario", value: 0.036 }, { name: "Eficiencia de sueño", value: 0.027 },
 ];
 
-export default function Technical() {
+export default function Technical({ data }) {
   const [model, setModel] = useState("Random Forest");
   const roc = ROC_DATA[model];
+  const today = data && data.length ? data[data.length - 1] : null;
+  const energyMap = computeEnergyMap(today, data);
+  const riskForecast = forecastRisk(data);
 
   return (
     <div className="flex flex-col gap-5">
+      {/* TU LABORATORIO: mapa de energia + proyeccion de riesgo (arriba, creativo) */}
+      <div className="flex items-center gap-2 mb-1">
+        <div style={{ background: `${C.teal}1A`, color: C.teal }} className="w-8 h-8 rounded-xl flex items-center justify-center">
+          <Sparkles size={16} />
+        </div>
+        <div>
+          <span style={{ color: C.text }} className="text-sm font-semibold block">Tu laboratorio</span>
+          <span style={{ color: C.textFaint }} className="text-[10px]">Predicciones personales desde tus métricas</span>
+        </div>
+      </div>
+
+      <EnergyMap map={energyMap} />
+      <RiskForecast forecast={riskForecast} />
+
       <SectionHeader index="09" title="Modelos y validación" subtitle="Ciencia de datos detrás del índice de riesgo" icon={FlaskConical} />
 
       {/* 3 MODELOS */}

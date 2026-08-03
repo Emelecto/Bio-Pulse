@@ -12,7 +12,7 @@ import { C, ChartTooltip } from "./ui.jsx";
 import SleepScoreRing from "./SleepScoreRing.jsx";
 import { computeSleepScore } from "../lib/bioUtils.js";
 
-export default function Sleep({ data }) {
+export default function Sleep({ data, onBreathe }) {
   const [range, setRange] = useState(14);
   const [selectedIdx, setSelectedIdx] = useState(data.length - 1); // noche anterior por defecto
   const sleepDays = data.slice(-range);
@@ -70,6 +70,15 @@ export default function Sleep({ data }) {
           <MiniStat icon={Moon} label="Sueño profundo" value={deepMin} unit="min" color={C.purple} />
           <MiniStat icon={HeartPulse} label="RHR en sueño" value={sleepRhr} unit="bpm" color={C.rose} />
         </div>
+        {onBreathe && sleepObj.score < 70 && (
+          <button
+            onClick={onBreathe}
+            style={{ background: `${C.teal}1A`, color: C.teal, border: `1px solid ${C.teal}44` }}
+            className="mt-3 text-[12px] font-semibold px-3.5 py-1.5 rounded-full active:scale-95 transition-transform flex items-center gap-1.5"
+          >
+            <span style={{ fontSize: 13, lineHeight: 1 }}>◐</span> Respira 2 min para bajar la carga
+          </button>
+        )}
       </div>
 
       {/* DETALLE DE LA NOCHE SELECCIONADA */}
