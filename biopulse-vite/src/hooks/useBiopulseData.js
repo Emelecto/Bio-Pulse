@@ -21,7 +21,7 @@ const FIELD_DEFS = [
   { key: "steps", label: "Pasos", required: false, synonyms: ["steps","step count"] },
   { key: "wakeUps", label: "Despertares", required: false, synonyms: ["wake_ups","awakenings","wakeups"] },
 ];
-const norm = (s) => String(s).toLowerCase().trim().replace(/[_-]+/g, " ").replace(/\s+/g, " ");
+const norm = (s) => String(s).replace(/^﻿/, "").toLowerCase().trim().replace(/[_-]+/g, " ").replace(/\s+/g, " ");
 function autoDetectMapping(headers) {
   const mapping = {};
   FIELD_DEFS.forEach(({ key, synonyms }) => {
