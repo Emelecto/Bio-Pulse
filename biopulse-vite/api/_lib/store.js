@@ -6,7 +6,8 @@
 // de salud viven ASOCIADOS al usuario (campo profile).
 // ============================================================
 const FS = await import("node:fs/promises");
-const PATH = "/tmp/biopulse-users.json";
+const OS = await import("node:os");
+const PATH = OS.tmpdir() + "/biopulse-users.json";
 
 let kvAvailable = false;
 const KV_URL = process.env.KV_REST_API_URL;

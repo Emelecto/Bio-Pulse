@@ -4,6 +4,7 @@
 // NO depende de servicios externos; usa AUTH_SECRET de env vars.
 // ============================================================
 const AUTH_SECRET = process.env.AUTH_SECRET || "dev-only-insecure-secret-change-me";
+const { createHmac } = await import("node:crypto");
 
 function b64url(buf) {
   return Buffer.from(buf).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
@@ -22,15 +23,15 @@ export async function hashPassword(password) {
   const enc = new TextEncoder();
   const salt = crypto.getRandomValues(new Uint8Array(16));
   const iter = 100000;
-  const key = await crypto.subtle.deriveKey(
-    { name: "PBKDF2", salt, iterations: iter, hash: "SHA-256" },
-    await crypto.subtle.importKey("raw", enc.encode(password), "raw", false, ["deriveKey"]),
-    { name: "HMAC", hash: "SHA-256", length: 256 },
-    false,
-    ["sign"]
+  // Importar la contrasena como MATERIAL PBKDF2 (no "raw" derivando HMAC).
+  const material = await crypto.subtle.importKey(
+    "raw", enc.encode(password), "PBKDF2", false, ["deriveBits"]
   );
-  const raw = await crypto.subtle.exportKey("raw", key);
-  return `pbkdf2$${iter}$${b64url(salt)}$${b64url(raw)}`;
+  const bits = await crypto.subtle.deriveBits(
+    { name: "PBKDF2", salt, iterations: iter, hash: "SHA-256" },
+    material, 256
+  );
+  return `pbkdf2$${iter}$${b64url(salt)}$${b64url(new Uint8Array(bits))}`;
 }
 
 export async function verifyPassword(password, stored) {
@@ -39,15 +40,14 @@ export async function verifyPassword(password, stored) {
     if (scheme !== "pbkdf2") return false;
     const enc = new TextEncoder();
     const salt = fromB64url(saltB64);
-    const key = await crypto.subtle.deriveKey(
-      { name: "PBKDF2", salt, iterations: Number(iterStr), hash: "SHA-256" },
-      await crypto.subtle.importKey("raw", enc.encode(password), "raw", false, ["deriveKey"]),
-      { name: "HMAC", hash: "SHA-256", length: 256 },
-      false,
-      ["sign"]
+    const material = await crypto.subtle.importKey(
+      "raw", enc.encode(password), "PBKDF2", false, ["deriveBits"]
     );
-    const raw = await crypto.subtle.exportKey("raw", key);
-    const got = b64url(raw);
+    const bits = await crypto.subtle.deriveBits(
+      { name: "PBKDF2", salt, iterations: Number(iterStr), hash: "SHA-256" },
+      material, 256
+    );
+    const got = b64url(new Uint8Array(bits));
     // comparacion constante (timing-safe)
     const a = fromB64url(got), b = fromB64url(hashB64);
     if (a.length !== b.length) return false;
@@ -63,14 +63,14 @@ export async function verifyPassword(password, stored) {
 export function signToken(payload, ttlSeconds = 60 * 60 * 24 * 30) {
   const body = { ...payload, exp: Math.floor(Date.now() / 1000) + ttlSeconds };
   const data = b64urlStr(JSON.stringify(body));
-  const sig = b64url(crypto.createHmac("sha256", AUTH_SECRET).update(data).digest());
+  const sig = b64url(createHmac("sha256", AUTH_SECRET).update(data).digest());
   return `${data}.${sig}`;
 }
 
 export function verifyToken(token) {
   if (!token || typeof token !== "string" || !token.includes(".")) return null;
   const [data, sig] = token.split(".");
-  const expected = b64url(crypto.createHmac("sha256", AUTH_SECRET).update(data).digest());
+  const expected = b64url(createHmac("sha256", AUTH_SECRET).update(data).digest());
   if (sig !== expected) return null;
   try {
     const body = JSON.parse(fromB64url(data).toString("utf8"));
