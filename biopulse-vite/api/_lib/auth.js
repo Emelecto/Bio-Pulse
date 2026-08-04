@@ -80,3 +80,14 @@ export function verifyToken(token) {
     return null;
   }
 }
+
+// Token de reset de contrasena: corto (15 min) y marcado type:'reset'
+// para que no sirva como token de sesion.
+export function signResetToken(email, ttlSeconds = 60 * 15) {
+  return signToken({ email, type: "reset" }, ttlSeconds);
+}
+export function verifyResetToken(token) {
+  const body = verifyToken(token);
+  if (!body || body.type !== "reset") return null;
+  return body;
+}

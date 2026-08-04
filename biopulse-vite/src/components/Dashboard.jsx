@@ -45,6 +45,32 @@ export default function Dashboard({ data, today, riskThreshold, onOpenSettings, 
 
   return (
     <div className="flex flex-col gap-5">
+      {/* BANNER DE ALERTA DE RIESGO: cuando el Risk Score supera el umbral del usuario */}
+      {today.riskScore >= riskThreshold && (
+        <div style={{ background: `linear-gradient(135deg, ${C.rose}1A, ${C.amber}14)`, border: `1px solid ${C.rose}55` }} className="rounded-3xl p-4 animate-pulse-subtle">
+          <div className="flex items-start gap-3">
+            <div style={{ background: `${C.rose}22`, color: C.rose }} className="w-9 h-9 rounded-2xl flex items-center justify-center shrink-0">
+              <AlertTriangle size={18} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div style={{ color: C.rose }} className="text-[14px] font-semibold leading-tight">
+                Alerta de riesgo: tu índice llegó a {today.riskScore}
+              </div>
+              <p style={{ color: C.text }} className="text-[12.5px] leading-relaxed mt-1">
+                Estás por encima de tu umbral ({riskThreshold}). Tu cuerpo te está pidiendo un respiro: reducir el estrés hoy protege tu recuperación de mañana.
+              </p>
+              <ul style={{ color: C.textMuted }} className="text-[12px] mt-2 flex flex-col gap-1">
+                <li>• Duerme 30 min más y baja pantallas una hora antes de dormir.</li>
+                <li>• Haz la respiración de 2 min y una caminata ligera de 15 min.</li>
+                <li>• Prioriza hidratación y evita café tras las 2 pm.</li>
+              </ul>
+              <button onClick={openCoach} style={{ background: C.rose, color: "#fff" }} className="mt-3 text-[12.5px] font-semibold px-3.5 py-2 rounded-full active:scale-95 transition-transform flex items-center gap-1.5">
+                <Sparkles size={14} /> Hablar con el Coach Asistente
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {/* HERO: BioScore (bienestar, mayor = mejor) */}
       <div style={{ background: `linear-gradient(160deg, ${C.card}, ${C.bgSoft})`, border: `1px solid ${C.border}` }} className="rounded-3xl p-5 pt-4 relative overflow-hidden tab-fade-in">
         <div className="relative flex items-center justify-between mb-1">

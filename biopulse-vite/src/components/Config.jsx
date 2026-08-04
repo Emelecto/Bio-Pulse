@@ -5,10 +5,28 @@
 // como props desde AppInner, evitando instanciar useAuth dos veces.
 // ============================================================
 import React, { useState } from "react";
-import { User, Key, Upload, Database, Trash2, RefreshCw, AlertTriangle, Mail, CheckCircle2, LogIn, UserPlus, Sparkles, Pencil } from "lucide-react";
+import { User, Key, Upload, Database, Trash2, RefreshCw, AlertTriangle, Mail, CheckCircle2, LogIn, UserPlus, Sparkles, Pencil, Eye, EyeOff } from "lucide-react";
 import { C } from "./ui.jsx";
 import { useTheme } from "../lib/theme.jsx";
 import Onboarding from "./Onboarding.jsx";
+
+// Input de contrasena con ojo (mostrar/ocultar)
+function PassField({ label, value, onChange, placeholder }) {
+  const [show, setShow] = useState(false);
+  return (
+    <div>
+      <label style={{ color: C.textMuted }} className="text-[12px] font-medium">{label}</label>
+      <div style={{ position: "relative", marginTop: 4 }}>
+        <input type={show ? "text" : "password"} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder}
+          style={{ width: "100%", borderRadius: 8, padding: "10px 38px 10px 12px", fontSize: 13, background: C.bgSoft, border: `1px solid ${C.borderSoft}`, color: C.text }} />
+        <button type="button" onClick={() => setShow((s) => !s)} aria-label={show ? "Ocultar" : "Mostrar"}
+          style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", color: C.textMuted, display: "flex" }}>
+          {show ? <EyeOff size={16} /> : <Eye size={16} />}
+        </button>
+      </div>
+    </div>
+  );
+}
 
 export default function Config({ data, hook, auth }) {
   const {
@@ -24,6 +42,12 @@ export default function Config({ data, hook, auth }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
   const [editing, setEditing] = useState(false);
+  const [resetView, setResetView] = useState(false); // flujo de recuperacion
+  const [recoveryQ, setRecoveryQ] = useState(null);
+  const [resetEmail, setResetEmail] = useState("");
+  const [resetAnswer, setResetAnswer] = useState("");
+  const [resetPass, setResetPass] = useState("");
+  const [resetToken, setResetToken] = useState(null);
 
   // Edicion de perfil: reusa el cuestionario Onboarding (modo edicion),
   // guarda via auth.saveProfile (backend) -> queda linked a la cuenta.
@@ -134,22 +158,42 @@ export default function Config({ data, hook, auth }) {
             <input type="email" required placeholder="tu@correo.com" value={email}
               onChange={(e) => setEmail(e.target.value)} style={{ background: C.bgSoft, border: `1px solid ${C.borderSoft}`, color: C.text }}
               className="text-xs rounded-lg px-3 py-2.5 outline-none" />
-            <input type="password" required placeholder="Contraseña" value={pass}
-              onChange={(e) => setPass(e.target.value)} style={{ background: C.bgSoft, border: `1px solid ${C.borderSoft}`, color: C.text }}
-              className="text-xs rounded-lg px-3 py-2.5 outline-none" />
+            <PassField label="" value={pass} onChange={setPass} placeholder="Contraseña" />
             <button type="submit" disabled={busy} style={{ background: C.teal, color: C.bg, opacity: busy ? 0.6 : 1 }} className="text-[13px] font-semibold py-3 rounded-xl">
               {busy ? "Procesando…" : "Entrar"}
             </button>
+            <button type="button" onClick={() => setView("reset-email")} style={{ color: C.teal }} className="text-[11px]">¿Olvidaste tu contraseña?</button>
             <button type="button" onClick={() => setView("choice")} style={{ color: C.textFaint }} className="text-[11px]">← Volver</button>
           </form>
+        ) : view === "reset-email" ? (
+          <form onSubmit={async (e) => { e.preventDefault(); setBusy(true); setErr(null); try { const q = await auth.requestRecoveryQuestion(resetEmail.trim()); setRecoveryQ(q); setView("reset-answer"); } catch (er) { setErr(er.message || "No encontramos esa cuenta."); } finally { setBusy(false); } }} className="flex flex-col gap-2.5">
+            <label style={{ color: C.textMuted }} className="text-[12px] font-medium">Restablecer contraseña</label>
+            <input type="email" required placeholder="tu@correo.com" value={resetEmail}
+              onChange={(e) => setResetEmail(e.target.value)} style={{ background: C.bgSoft, border: `1px solid ${C.borderSoft}`, color: C.text }}
+              className="text-xs rounded-lg px-3 py-2.5 outline-none" />
+            <button type="submit" disabled={busy} style={{ background: C.teal, color: C.bg, opacity: busy ? 0.6 : 1 }} className="text-[13px] font-semibold py-3 rounded-xl">Continuar</button>
+            <button type="button" onClick={() => setView("login")} style={{ color: C.textFaint }} className="text-[11px]">← Volver</button>
+          </form>
+        ) : view === "reset-answer" ? (
+          <form onSubmit={async (e) => { e.preventDefault(); setBusy(true); setErr(null); try { const t = await auth.requestReset(resetEmail.trim(), resetAnswer.trim()); await auth.confirmReset(t, resetPass); setView("reset-done"); } catch (er) { setErr(er.message || "No se pudo restablecer."); } finally { setBusy(false); } }} className="flex flex-col gap-2.5">
+            <label style={{ color: C.textMuted }} className="text-[12px] font-medium">{recoveryQ}</label>
+            <PassField label="" value={resetAnswer} onChange={setResetAnswer} placeholder="Tu respuesta" />
+            <PassField label="" value={resetPass} onChange={setResetPass} placeholder="Nueva contraseña (mín 6)" />
+            <button type="submit" disabled={busy || resetPass.length < 6} style={{ background: C.teal, color: C.bg, opacity: busy ? 0.6 : 1 }} className="text-[13px] font-semibold py-3 rounded-xl">Restablecer</button>
+            <button type="button" onClick={() => setView("reset-email")} style={{ color: C.textFaint }} className="text-[11px]">← Volver</button>
+          </form>
+        ) : view === "reset-done" ? (
+          <div className="flex flex-col gap-2.5 text-center">
+            <CheckCircle2 size={28} style={{ color: C.teal }} className="mx-auto" />
+            <span style={{ color: C.text }} className="text-[13px] font-medium">Contraseña actualizada</span>
+            <button onClick={() => setView("login")} style={{ background: C.teal, color: C.bg }} className="text-[13px] font-semibold py-3 rounded-xl">Iniciar sesión</button>
+          </div>
         ) : (
           <form onSubmit={doSignUp} className="flex flex-col gap-2.5">
             <input type="email" required placeholder="tu@correo.com" value={email}
               onChange={(e) => setEmail(e.target.value)} style={{ background: C.bgSoft, border: `1px solid ${C.borderSoft}`, color: C.text }}
               className="text-xs rounded-lg px-3 py-2.5 outline-none" />
-            <input type="password" required minLength={6} placeholder="Contraseña (mín 6)" value={pass}
-              onChange={(e) => setPass(e.target.value)} style={{ background: C.bgSoft, border: `1px solid ${C.borderSoft}`, color: C.text }}
-              className="text-xs rounded-lg px-3 py-2.5 outline-none" />
+            <PassField label="" value={pass} onChange={setPass} placeholder="Contraseña (mín 6)" />
             <button type="submit" disabled={busy} style={{ background: C.teal, color: C.bg, opacity: busy ? 0.6 : 1 }} className="text-[13px] font-semibold py-3 rounded-xl">
               {busy ? "Procesando…" : "Crear cuenta"}
             </button>

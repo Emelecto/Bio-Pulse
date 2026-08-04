@@ -55,10 +55,10 @@ export function useAuth() {
     })();
   }, []);
 
-  const register = useCallback(async (email, password, prof) => {
+  const register = useCallback(async (email, password, prof, recovery) => {
     const data = await api("/api/register", {
       method: "POST",
-      body: JSON.stringify({ email, password, profile: prof }),
+      body: JSON.stringify({ email, password, profile: prof, recovery }),
     });
     localStorage.setItem(TOKEN_KEY, data.token);
     localStorage.removeItem(SKIP_KEY);
@@ -108,7 +108,27 @@ export function useAuth() {
     setToken(null); setUser(null); setProfile(null); setSkipped(true);
   }, []);
 
-  return { token, user, profile, status, skipped, booted, login, register, logout, skip, saveProfile };
+  // --- Recuperacion de contrasena (pregunta de seguridad) ---
+  const requestRecoveryQuestion = useCallback(async (email) => {
+    const data = await api(`/api/recovery-question?email=${encodeURIComponent(email)}`);
+    return data.question;
+  }, []);
+  const requestReset = useCallback(async (email, answer) => {
+    const data = await api("/api/reset-request", {
+      method: "POST",
+      body: JSON.stringify({ email, answer }),
+    });
+    return data.resetToken; // token HMAC de 15 min para confirmar
+  }, []);
+  const confirmReset = useCallback(async (resetToken, newPassword) => {
+    await api("/api/reset-confirm", {
+      method: "POST",
+      body: JSON.stringify({ resetToken, newPassword }),
+    });
+  }, []);
+
+  return { token, user, profile, status, skipped, booted, login, register, logout, skip, saveProfile,
+    requestRecoveryQuestion, requestReset, confirmReset };
 }
 
 function emailFromToken(t) {

@@ -80,3 +80,18 @@ export async function updateProfile(email, profile) {
   await putUser(email, rec);
   return rec;
 }
+
+// Devuelve solo la PREGUNTA de recuperacion (nunca la respuesta).
+export async function getRecoveryQuestion(email) {
+  const rec = await getByEmail(email);
+  return rec && rec.recoveryQ ? rec.recoveryQ : null;
+}
+
+// Actualiza el hash de contrasena tras un reset valido.
+export async function updatePassword(email, pwHash) {
+  const rec = await getByEmail(email);
+  if (!rec) return null;
+  rec.pwHash = pwHash;
+  await putUser(email, rec);
+  return rec;
+}
