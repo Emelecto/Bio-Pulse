@@ -181,15 +181,15 @@ export default function Onboarding({ auth, onDemo, editMode = false, initialProf
 // ---------- Sub-componentes ----------
 function Shell({ children }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center px-5 py-6" style={{ background: C.bg }}>
-      <div className="w-full max-w-[360px]">
-        <div className="flex items-center justify-center gap-2 mb-5">
-          <div style={{ background: C.teal }} className="w-7 h-7 rounded-lg flex items-center justify-center">
+    <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", padding: "24px 20px", background: C.bg, fontSize: "13px" }}>
+      <div style={{ width: "100%", maxWidth: 360 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 20 }}>
+          <div style={{ background: C.teal, width: 28, height: 28, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center" }}>
             <Activity size={15} color={C.bg} strokeWidth={2.5} />
           </div>
-          <span style={{ color: C.text, fontFamily: "'Space Grotesk', sans-serif" }} className="text-[17px] font-bold tracking-tight">BioPulse</span>
+          <span style={{ color: C.text, fontFamily: "'Space Grotesk', sans-serif", fontSize: 17, fontWeight: 700, letterSpacing: "-0.01em" }}>BioPulse</span>
         </div>
-        <div className="glass rounded-2xl p-4">{children}</div>
+        <div className="glass rounded-2xl p-4" style={{ background: C.card, border: `1px solid ${C.border}` }}>{children}</div>
       </div>
     </div>
   );
