@@ -113,10 +113,12 @@ export function useAuth() {
     const data = await api(`/api/recovery-question?email=${encodeURIComponent(email)}`);
     return data.question;
   }, []);
-  const requestReset = useCallback(async (email, answer) => {
+  const requestReset = useCallback(async (email, answer, code) => {
+    const body = { email };
+    if (code != null) body.code = code; else body.answer = answer;
     const data = await api("/api/reset-request", {
       method: "POST",
-      body: JSON.stringify({ email, answer }),
+      body: JSON.stringify(body),
     });
     return data.resetToken; // token HMAC de 15 min para confirmar
   }, []);

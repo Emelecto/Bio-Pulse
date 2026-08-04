@@ -95,3 +95,19 @@ export async function updatePassword(email, pwHash) {
   await putUser(email, rec);
   return rec;
 }
+
+// Reset SIN pregunta de recuperacion: guarda un codigo de 6 digitos
+// (con TTL) que se muestra en pantalla al solicitante (no hay email service).
+export async function saveResetCode(email, code) {
+  const rec = await getByEmail(email);
+  if (!rec) return null;
+  rec.resetCode = { code, exp: Date.now() + 10 * 60 * 1000 };
+  await putUser(email, rec);
+  return true;
+}
+export async function verifyResetCode(email, code) {
+  const rec = await getByEmail(email);
+  if (!rec || !rec.resetCode) return false;
+  if (rec.resetCode.exp < Date.now()) return false;
+  return rec.resetCode.code === String(code).trim();
+}

@@ -48,6 +48,7 @@ export default function Config({ data, hook, auth }) {
   const [resetAnswer, setResetAnswer] = useState("");
   const [resetPass, setResetPass] = useState("");
   const [resetToken, setResetToken] = useState(null);
+  const [resetCode, setResetCode] = useState(null);
 
   // Edicion de perfil: reusa el cuestionario Onboarding (modo edicion),
   // guarda via auth.saveProfile (backend) -> queda linked a la cuenta.
@@ -166,13 +167,23 @@ export default function Config({ data, hook, auth }) {
             <button type="button" onClick={() => setView("choice")} style={{ color: C.textFaint }} className="text-[11px]">← Volver</button>
           </form>
         ) : view === "reset-email" ? (
-          <form onSubmit={async (e) => { e.preventDefault(); setBusy(true); setErr(null); try { const q = await auth.requestRecoveryQuestion(resetEmail.trim()); setRecoveryQ(q); setView("reset-answer"); } catch (er) { setErr(er.message || "No encontramos esa cuenta."); } finally { setBusy(false); } }} className="flex flex-col gap-2.5">
+          <form onSubmit={async (e) => { e.preventDefault(); setBusy(true); setErr(null); try { const q = await auth.requestRecoveryQuestion(resetEmail.trim()); setRecoveryQ(q); if (q.hasRecovery) { setView("reset-answer"); } else { setResetCode(q.code); setView("reset-code"); } } catch (er) { setErr(er.message || "No encontramos esa cuenta."); } finally { setBusy(false); } }} className="flex flex-col gap-2.5">
             <label style={{ color: C.textMuted }} className="text-[12px] font-medium">Restablecer contraseña</label>
             <input type="email" required placeholder="tu@correo.com" value={resetEmail}
               onChange={(e) => setResetEmail(e.target.value)} style={{ background: C.bgSoft, border: `1px solid ${C.borderSoft}`, color: C.text }}
               className="text-xs rounded-lg px-3 py-2.5 outline-none" />
             <button type="submit" disabled={busy} style={{ background: C.teal, color: C.bg, opacity: busy ? 0.6 : 1 }} className="text-[13px] font-semibold py-3 rounded-xl">Continuar</button>
             <button type="button" onClick={() => setView("login")} style={{ color: C.textFaint }} className="text-[11px]">← Volver</button>
+          </form>
+        ) : view === "reset-code" ? (
+          <form onSubmit={async (e) => { e.preventDefault(); setBusy(true); setErr(null); try { const t = await auth.requestReset(resetEmail.trim(), null, resetAnswer.trim()); await auth.confirmReset(t, resetPass); setView("reset-done"); } catch (er) { setErr(er.message || "No se pudo restablecer."); } finally { setBusy(false); } }} className="flex flex-col gap-2.5">
+            <label style={{ color: C.textMuted }} className="text-[12px] font-medium">Verificación en pantalla</label>
+            <p style={{ color: C.text }} className="text-[12px] leading-relaxed">Esta cuenta no tiene pregunta de seguridad. Usa este código de verificación para confirmar que eres tú:</p>
+            <div style={{ background: C.bgSoft, border: `1px dashed ${C.teal}`, color: C.teal, letterSpacing: "0.3em" }} className="text-[22px] font-bold text-center py-3 rounded-xl tracking-widest">{resetCode}</div>
+            <PassField label="Escribe el código" value={resetAnswer} onChange={setResetAnswer} placeholder="Código de 6 dígitos" />
+            <PassField label="Nueva contraseña" value={resetPass} onChange={setResetPass} placeholder="Nueva contraseña (mín 6)" />
+            <button type="submit" disabled={busy || resetPass.length < 6 || resetAnswer.trim().length !== 6} style={{ background: C.teal, color: C.bg, opacity: busy ? 0.6 : 1 }} className="text-[13px] font-semibold py-3 rounded-xl">Restablecer</button>
+            <button type="button" onClick={() => setView("reset-email")} style={{ color: C.textFaint }} className="text-[11px]">← Volver</button>
           </form>
         ) : view === "reset-answer" ? (
           <form onSubmit={async (e) => { e.preventDefault(); setBusy(true); setErr(null); try { const t = await auth.requestReset(resetEmail.trim(), resetAnswer.trim()); await auth.confirmReset(t, resetPass); setView("reset-done"); } catch (er) { setErr(er.message || "No se pudo restablecer."); } finally { setBusy(false); } }} className="flex flex-col gap-2.5">

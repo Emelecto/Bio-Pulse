@@ -22,7 +22,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "La contraseña debe tener al menos 6 caracteres." });
 
     const existing = await getByEmail(email);
-    if (existing) return res.status(409).json({ error: "Ese correo ya tiene una cuenta. Inicia sesión." });
+    if (existing) return res.status(409).json({ error: "Ese correo ya tiene una cuenta. Inicia sesión o restablece tu contraseña.", hasRecovery: !!existing.recoveryA });
 
     const pwHash = await hashPassword(password);
     const record = {
