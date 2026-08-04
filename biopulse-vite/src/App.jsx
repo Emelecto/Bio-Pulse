@@ -73,7 +73,7 @@ function AppInner({ hook, auth }) {
         </div>
 
         {/* TAB CONTENT */}
-        {tab === "dash" && <Dashboard data={data} today={today} riskThreshold={riskThreshold} onOpenSettings={() => setTab("config")} onBreathe={() => setBreathOpen(true)} />}
+        {tab === "dash" && <Dashboard data={data} today={today} riskThreshold={riskThreshold} userProfile={userProfile} onOpenSettings={() => setTab("config")} onBreathe={() => setBreathOpen(true)} />}
         {tab === "live" && <Live today={today} />}
         {tab === "sleep" && <Sleep data={data} onBreathe={() => setBreathOpen(true)} />}
         {tab === "config" && <Config data={data} hook={hook} auth={auth} />}

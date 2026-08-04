@@ -10,6 +10,7 @@ import { useState, useEffect, useCallback } from "react";
 
 const TOKEN_KEY = "biopulse-auth-token";
 const SKIP_KEY = "biopulse-auth-skipped";
+const PROFILE_KEY = "biopulse-profile"; // respaldo local del perfil (misma clave que useBiopulseData)
 
 async function api(path, opts = {}) {
   const res = await fetch(path, {
@@ -25,7 +26,9 @@ async function api(path, opts = {}) {
 export function useAuth() {
   const [token, setToken] = useState(null);
   const [user, setUser] = useState(null);
-  const [profile, setProfile] = useState(null);
+  const [profile, setProfile] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(PROFILE_KEY) || "null"); } catch { return null; }
+  });
   const [status, setStatus] = useState("loading");
   const [skipped, setSkipped] = useState(false);
   const [booted, setBooted] = useState(false);
@@ -38,19 +41,20 @@ export function useAuth() {
           const data = await api("/api/profile", { headers: { Authorization: `Bearer ${t}` } });
           setToken(t);
           setUser({ email: emailFromToken(t) || "usuario" });
-          setProfile(data.profile || null);
+          // Usa el perfil del backend; si viene vacio, cae al respaldo local.
+          const p = data.profile || JSON.parse(localStorage.getItem(PROFILE_KEY) || "null");
+          setProfile(p);
+          if (p) localStorage.setItem(PROFILE_KEY, JSON.stringify(p));
           setStatus("ready");
         } catch {
           localStorage.removeItem(TOKEN_KEY);
           setSkipped(!!localStorage.getItem(SKIP_KEY));
           setStatus("ready");
-        } finally {
-          setBooted(true);
         }
-        return;
+      } else {
+        setSkipped(!!localStorage.getItem(SKIP_KEY));
+        setStatus("ready");
       }
-      setSkipped(!!localStorage.getItem(SKIP_KEY));
-      setStatus("ready");
       setBooted(true);
     })();
   }, []);
@@ -65,6 +69,7 @@ export function useAuth() {
     setToken(data.token);
     setUser({ email: email.toLowerCase() });
     setProfile(data.profile || null);
+    if (data.profile) localStorage.setItem(PROFILE_KEY, JSON.stringify(data.profile));
     setSkipped(false);
     return data;
   }, []);
@@ -79,11 +84,13 @@ export function useAuth() {
     setToken(data.token);
     setUser({ email: email.toLowerCase() });
     setProfile(data.profile || null);
+    if (data.profile) localStorage.setItem(PROFILE_KEY, JSON.stringify(data.profile));
     setSkipped(false);
     return data;
   }, []);
 
   const saveProfile = useCallback(async (prof) => {
+    if (prof) localStorage.setItem(PROFILE_KEY, JSON.stringify(prof));
     if (!token) { setProfile(prof); return; }
     try {
       const data = await api("/api/profile", {
@@ -98,6 +105,7 @@ export function useAuth() {
   const logout = useCallback(() => {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(SKIP_KEY);
+    localStorage.removeItem(PROFILE_KEY);
     setToken(null); setUser(null); setProfile(null); setSkipped(false);
   }, []);
 
@@ -105,6 +113,7 @@ export function useAuth() {
   const skip = useCallback(() => {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.setItem(SKIP_KEY, "1");
+    localStorage.removeItem(PROFILE_KEY);
     setToken(null); setUser(null); setProfile(null); setSkipped(true);
   }, []);
 

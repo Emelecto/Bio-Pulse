@@ -28,7 +28,7 @@ const SECONDARY_METRICS = [
   { key: "sleepHours", label: "Horas sueño", icon: Moon, unit: "h", color: C.teal },
 ];
 
-export default function Dashboard({ data, today, riskThreshold, onOpenSettings, onOpenCoachSettings, onBreathe }) {
+export default function Dashboard({ data, today, riskThreshold, userProfile, onOpenSettings, onOpenCoachSettings, onBreathe }) {
   const { openCoach } = useCoach();
   const [primary, setPrimary] = useState("riskScore");
   const [visibleSecondary, setVisibleSecondary] = useState(SECONDARY_METRICS.map((m) => m.key));
@@ -43,8 +43,32 @@ export default function Dashboard({ data, today, riskThreshold, onOpenSettings, 
     );
   };
 
+  // Resumen del perfil del usuario (persistente con su cuenta).
+  const profileChips = [];
+  if (userProfile) {
+    if (userProfile.name) profileChips.push(userProfile.name);
+    if (userProfile.age) profileChips.push(`${userProfile.age} años`);
+    const goalLabel = { salud: "Salud", rendimiento: "Rendimiento", sueno: "Mejor sueño", recuperacion: "Recuperación", estres: "Menos estrés", energia: "Más energía", longevidad: "Longevidad", preparacion: "Prep. física" }[userProfile.goal];
+    if (goalLabel) profileChips.push(goalLabel);
+    (userProfile.conditions || []).forEach((c) => { if (c !== "ninguna") profileChips.push(c.startsWith("otra:") ? c.slice(5) : c); });
+  }
+
   return (
     <div className="flex flex-col gap-5">
+      {/* SALUDO + perfil persistente del usuario */}
+      {userProfile && (
+        <div style={{ background: C.bgSoft, border: `1px solid ${C.border}` }} className="rounded-2xl px-4 py-3 flex items-center justify-between">
+          <div className="min-w-0">
+            <div style={{ color: C.textMuted }} className="text-[11px]">Hola{userProfile.name ? `, ${userProfile.name}` : ""} 👋</div>
+            <div style={{ color: C.text }} className="text-[13px] font-semibold truncate">Tus datos están guardados en tu cuenta</div>
+          </div>
+          <div className="flex flex-wrap gap-1 justify-end max-w-[55%]">
+            {profileChips.slice(0, 3).map((c, i) => (
+              <span key={i} style={{ background: `${C.teal}14`, color: C.teal }} className="text-[10px] px-2 py-0.5 rounded-full whitespace-nowrap">{c}</span>
+            ))}
+          </div>
+        </div>
+      )}
       {/* BANNER DE ALERTA DE RIESGO: cuando el Risk Score supera el umbral del usuario */}
       {today.riskScore >= riskThreshold && (
         <div style={{ background: `linear-gradient(135deg, ${C.rose}1A, ${C.amber}14)`, border: `1px solid ${C.rose}55` }} className="rounded-3xl p-4 animate-pulse-subtle">
