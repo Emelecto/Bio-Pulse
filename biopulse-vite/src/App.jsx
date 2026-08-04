@@ -20,6 +20,7 @@ import Sleep from "./components/Sleep.jsx";
 import Config from "./components/Config.jsx";
 import Technical from "./components/Technical.jsx";
 import BreathSession from "./components/BreathSession.jsx";
+import Onboarding from "./components/Onboarding.jsx";
 import Coach from "./components/Coach.jsx";
 import { CoachProvider, useCoach } from "./coach/CoachContext.jsx";
 
@@ -43,6 +44,11 @@ function AppInner({ hook }) {
   const today = data[data.length - 1];
 
   const sourcePillLabel = customSourceLabel ? customSourceLabel : "Datos demo";
+
+  // Onboarding: primera vez, sin perfil -> mostramos el flujo de 30s encima de todo.
+  if (!hook.profile) {
+    return <Onboarding onComplete={hook.setProfile} />;
+  }
 
   return (
     <div style={{ background: C.bg, minHeight: "100vh", fontFamily: "'Manrope', sans-serif" }}>

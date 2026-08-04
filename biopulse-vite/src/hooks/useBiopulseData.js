@@ -83,6 +83,11 @@ export function useBiopulseData() {
   const [csvError, setCsvError] = useState(null);
   const [csvFileName, setCsvFileName] = useState(null);
 
+  // Perfil de usuario (onboarding): calibra contexto personal (edad, objetivo,
+  // condiciones) para hacer el BioScore/Sleep y el Coach mas personales.
+  // NO inventa datos: solo anade contexto a las metricas reales.
+  const [profile, setProfileState] = useState(null);
+
   useEffect(() => {
     const store = window.storage;
     (async () => {
@@ -98,8 +103,11 @@ export function useBiopulseData() {
       } catch (e) {}
       try { const hr = await store?.get("biopulse-history-range"); if (hr?.value) setHistoryRange(Number(hr.value) || 30); } catch (e) {}
       try { const rt = await store?.get("biopulse-risk-threshold"); if (rt?.value) setRiskThreshold(Number(rt.value) || 30); } catch (e) {}
+      try { const pf = await store?.get("biopulse-profile"); if (pf?.value) setProfileState(JSON.parse(pf.value)); } catch (e) {}
     })();
   }, []);
+
+  const persistProfile = async (next) => { setProfileState(next); try { await window.storage?.set("biopulse-profile", JSON.stringify(next), false); } catch (e) {} };
 
   const persistHistoryRange = async (v) => { setHistoryRange(v); try { await window.storage?.set("biopulse-history-range", String(v)); } catch (e) {} };
   const persistRiskThreshold = async (v) => { setRiskThreshold(v); try { await window.storage?.set("biopulse-risk-threshold", String(v)); } catch (e) {} };
@@ -144,6 +152,7 @@ export function useBiopulseData() {
 
   return {
     demoData, customData, customSourceLabel,
+    profile, setProfile: persistProfile,
     historyRange, setHistoryRange: persistHistoryRange,
     riskThreshold, setRiskThreshold: persistRiskThreshold,
     clearAllData,
