@@ -21,13 +21,20 @@ export { kvAvailable, KV_URL };
 async function kvGet(key) {
   const r = await fetch(`${KV_URL}/get/${encodeURIComponent(key)}`, { headers: { Authorization: `Bearer ${KV_TOKEN}` } });
   const j = await r.json();
-  return j.result; // null si no existe
+  let v = j.result;
+  // Upstash REST devuelve el valor como STRING; Vercel KV puede devolver
+  // objeto. Parseamos si es string para unificar ambos backends.
+  if (typeof v === "string") {
+    try { v = JSON.parse(v); } catch { /* dejar como esta */ }
+  }
+  return v || null;
 }
 async function kvSet(key, value) {
+  // Guardamos SIEMPRE como string JSON para compatibilidad KV/Upstash.
   await fetch(`${KV_URL}/set/${encodeURIComponent(key)}`, {
     method: "POST",
     headers: { Authorization: `Bearer ${KV_TOKEN}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ value }),
+    body: JSON.stringify(value),
   });
 }
 
