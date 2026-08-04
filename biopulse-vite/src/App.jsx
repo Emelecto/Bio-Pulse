@@ -28,7 +28,7 @@ import { CoachProvider, useCoach } from "./coach/CoachContext.jsx";
 // AppInner vive DENTRO del ThemeProvider: asi useTheme() lee el contexto real
 // y re-renderiza toda la app (y todos los tabs) al cambiar el tema, haciendo
 // que el toggle claro/oscuro se vea de inmediato (sin salir de Config).
-function AppInner({ hook, auth }) {
+function AppInner({ hook, auth, userProfile }) {
   const { theme, forceVersion } = useTheme();
   void forceVersion;
   const { tab, setTab } = useCoach();
@@ -116,7 +116,7 @@ function Root() {
   const today = data[data.length - 1];
   return (
     <CoachProvider today={today} userProfile={userProfile}>
-      <AppInner hook={hook} auth={auth} />
+      <AppInner hook={hook} auth={auth} userProfile={userProfile} />
     </CoachProvider>
   );
 }
