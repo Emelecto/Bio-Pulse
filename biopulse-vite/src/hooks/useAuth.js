@@ -1,116 +1,121 @@
 // ============================================================
-// hooks/useAuth.js — auth real con Supabase (email/password,
-// confirmacion por correo, reset de password, OAuth Google) con
-// fallback a mock local si no hay credenciales. Errores traducidos.
+// useAuth — estado de sesion (Camino A: backend Vercel).
+// Persiste el token en localStorage. Recuerda si el usuario eligio
+// "Usar datos demo" (flag biopulse-auth-skipped) para no volver a
+// mostrar el onboarding en cada arranque.
+// Expone: token, user{email}, profile, status('loading'|'ready'),
+//         skipped, booted, login, register, logout, skip, saveProfile.
 // ============================================================
-import { useState, useEffect } from "react";
-import { supabaseClient, supabaseEnabled } from "../lib/supabase.js";
+import { useState, useEffect, useCallback } from "react";
 
-// Traduce mensajes cripticos de Supabase a espanol claro.
-function translateError(msg = "") {
-  if (/user already registered/i.test(msg)) return "Ese correo ya tiene una cuenta. Inicia sesión.";
-  if (/invalid login credentials/i.test(msg)) return "Correo o contraseña incorrectos.";
-  if (/password should be at least/i.test(msg)) return "La contraseña debe tener al menos 6 caracteres.";
-  if (/email not confirmed/i.test(msg)) return "Aún no has verificado tu correo. Revisa tu bandeja y haz clic en el enlace.";
-  if (/unable to validate email/i.test(msg)) return "El correo no tiene un formato válido.";
-  if (/for security purposes/i.test(msg)) return "Demasiados intentos. Espera un momento e inténtalo de nuevo.";
-  if (/user not found/i.test(msg)) return "No existe una cuenta con ese correo.";
-  return msg || "Ocurrió un error. Inténtalo de nuevo.";
+const TOKEN_KEY = "biopulse-auth-token";
+const SKIP_KEY = "biopulse-auth-skipped";
+
+async function api(path, opts = {}) {
+  const res = await fetch(path, {
+    headers: { "Content-Type": "application/json", ...(opts.headers || {}) },
+    ...opts,
+  });
+  let data = {};
+  try { data = await res.json(); } catch {}
+  if (!res.ok) throw new Error(data.error || "Error de red");
+  return data;
 }
 
 export function useAuth() {
+  const [token, setToken] = useState(null);
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [info, setInfo] = useState(null); // mensajes no-error (ej. reset enviado)
-  const [needsConfirmation, setNeedsConfirmation] = useState(false);
-  const isReal = supabaseEnabled;
+  const [profile, setProfile] = useState(null);
+  const [status, setStatus] = useState("loading");
+  const [skipped, setSkipped] = useState(false);
+  const [booted, setBooted] = useState(false);
 
   useEffect(() => {
-    if (supabaseEnabled && supabaseClient) {
-      supabaseClient.auth.getSession().then(({ data }) => {
-        if (data.session?.user) setUser({ email: data.session.user.email, name: (data.session.user.email || "").split("@")[0] });
-      });
-      const { data: sub } = supabaseClient.auth.onAuthStateChange((_e, session) => {
-        setUser(session?.user ? { email: session.user.email, name: (session.user.email || "").split("@")[0] } : null);
-      });
-      return () => sub.subscription.unsubscribe();
-    }
+    (async () => {
+      const t = localStorage.getItem(TOKEN_KEY);
+      if (t) {
+        try {
+          const data = await api("/api/profile", { headers: { Authorization: `Bearer ${t}` } });
+          setToken(t);
+          setUser({ email: emailFromToken(t) || "usuario" });
+          setProfile(data.profile || null);
+          setStatus("ready");
+        } catch {
+          localStorage.removeItem(TOKEN_KEY);
+          // sin token valido: si habia elegido demo, no poppea; sino muestra onboarding
+          setSkipped(!!localStorage.getItem(SKIP_KEY));
+          setStatus("ready");
+        } finally {
+          setBooted(true);
+        }
+        return;
+      }
+      // sin token: ¿eligio demo antes?
+      setSkipped(!!localStorage.getItem(SKIP_KEY));
+      setStatus("ready");
+      setBooted(true);
+    })();
   }, []);
 
-  const signUp = async (email, password) => {
-    setError(null); setLoading(true); setNeedsConfirmation(false); setInfo(null);
+  const register = useCallback(async (email, password, prof) => {
+    const data = await api("/api/register", {
+      method: "POST",
+      body: JSON.stringify({ email, password, profile: prof }),
+    });
+    localStorage.setItem(TOKEN_KEY, data.token);
+    localStorage.removeItem(SKIP_KEY);
+    setToken(data.token);
+    setUser({ email: email.toLowerCase() });
+    setProfile(data.profile || null);
+    setSkipped(false);
+    return data;
+  }, []);
+
+  const login = useCallback(async (email, password) => {
+    const data = await api("/api/login", {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+    });
+    localStorage.setItem(TOKEN_KEY, data.token);
+    localStorage.removeItem(SKIP_KEY);
+    setToken(data.token);
+    setUser({ email: email.toLowerCase() });
+    setProfile(data.profile || null);
+    setSkipped(false);
+    return data;
+  }, []);
+
+  const saveProfile = useCallback(async (prof) => {
+    if (!token) { setProfile(prof); return; }
     try {
-      if (isReal && supabaseClient) {
-        const { data, error } = await supabaseClient.auth.signUp({ email, password });
-        if (error) { setError(translateError(error.message)); return false; }
-        // Si Supabase NO abre sesion automaticamente => pide confirmar correo.
-        if (!data.session) {
-          setNeedsConfirmation(true);
-          return "confirm";
-        }
-        return true;
-      }
-      // mock: simula flujo de confirmacion para consistencia visual
-      setNeedsConfirmation(true);
-      return "confirm";
-    } catch (e) { setError(translateError(e.message)); return false; }
-    finally { setLoading(false); }
-  };
+      const data = await api("/api/profile", {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ profile: prof }),
+      });
+      setProfile(data.profile || prof);
+    } catch { setProfile(prof); }
+  }, [token]);
 
-  const signIn = async (email, password) => {
-    setError(null); setLoading(true); setNeedsConfirmation(false); setInfo(null);
-    try {
-      if (isReal && supabaseClient) {
-        const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
-        if (error) { setError(translateError(error.message)); return false; }
-        return true;
-      }
-      setUser({ email, name: email.split("@")[0] });
-      return true;
-    } catch (e) { setError(translateError(e.message)); return false; }
-    finally { setLoading(false); }
-  };
+  const logout = useCallback(() => {
+    localStorage.removeItem(TOKEN_KEY);
+    setToken(null); setUser(null); setProfile(null);
+  }, []);
 
-  const signInWithGoogle = async () => {
-    setError(null); setLoading(true); setInfo(null);
-    try {
-      if (isReal && supabaseClient) {
-        const { error } = await supabaseClient.auth.signInWithOAuth({
-          provider: "google",
-          options: { redirectTo: window.location.origin },
-        });
-        if (error) { setError(translateError(error.message)); return false; }
-        return true; // redirige a Google
-      }
-      setError("Login con Google no disponible en modo demo.");
-      return false;
-    } catch (e) { setError(translateError(e.message)); return false; }
-    finally { setLoading(false); }
-  };
+  // "Usar datos demo": no hay cuenta; recordamos la eleccion para no poppear.
+  const skip = useCallback(() => {
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.setItem(SKIP_KEY, "1");
+    setToken(null); setUser(null); setProfile(null); setSkipped(true);
+  }, []);
 
-  const resetPassword = async (email) => {
-    setError(null); setLoading(true); setInfo(null);
-    try {
-      if (isReal && supabaseClient) {
-        const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
-          redirectTo: window.location.origin + "/ajustes",
-        });
-        if (error) { setError(translateError(error.message)); return false; }
-        setInfo("Te enviamos un enlace a tu correo para restablecer la contraseña.");
-        return true;
-      }
-      setInfo("Te enviamos un enlace a tu correo para restablecer la contraseña.");
-      return true;
-    } catch (e) { setError(translateError(e.message)); return false; }
-    finally { setLoading(false); }
-  };
+  return { token, user, profile, status, skipped, booted, login, register, logout, skip, saveProfile };
+}
 
-  const signOut = async () => {
-    setError(null); setInfo(null); setNeedsConfirmation(false);
-    if (isReal && supabaseClient) await supabaseClient.auth.signOut();
-    setUser(null);
-  };
-
-  return { user, loading, error, info, needsConfirmation, signUp, signIn, signInWithGoogle, resetPassword, signOut, isReal };
+function emailFromToken(t) {
+  try {
+    const data = t.split(".")[0];
+    const json = JSON.parse(atob(data.replace(/-/g, "+").replace(/_/g, "/")));
+    return json.email;
+  } catch { return null; }
 }

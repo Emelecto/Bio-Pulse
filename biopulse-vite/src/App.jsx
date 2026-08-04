@@ -22,12 +22,13 @@ import Technical from "./components/Technical.jsx";
 import BreathSession from "./components/BreathSession.jsx";
 import Onboarding from "./components/Onboarding.jsx";
 import Coach from "./components/Coach.jsx";
+import { useAuth } from "./hooks/useAuth.js";
 import { CoachProvider, useCoach } from "./coach/CoachContext.jsx";
 
 // AppInner vive DENTRO del ThemeProvider: asi useTheme() lee el contexto real
 // y re-renderiza toda la app (y todos los tabs) al cambiar el tema, haciendo
 // que el toggle claro/oscuro se vea de inmediato (sin salir de Config).
-function AppInner({ hook }) {
+function AppInner({ hook, auth }) {
   const { theme, forceVersion } = useTheme();
   void forceVersion;
   const { tab, setTab } = useCoach();
@@ -45,9 +46,10 @@ function AppInner({ hook }) {
 
   const sourcePillLabel = customSourceLabel ? customSourceLabel : "Datos demo";
 
-  // Onboarding: primera vez, sin perfil -> mostramos el flujo de 30s encima de todo.
-  if (!hook.profile) {
-    return <Onboarding onComplete={hook.setProfile} />;
+  // Onboarding: se muestra solo si NO hay sesion valida (token) y el usuario
+  // no eligio "Usar datos demo" antes. Los usuarios con cuenta no lo ven cada vez.
+  if (!auth.token && !auth.skipped) {
+    return <Onboarding auth={auth} onDemo={auth.skip} />;
   }
 
   return (
@@ -103,11 +105,18 @@ function AppInner({ hook }) {
 // Root llama al hook UNA vez y envuelve todo en CoachProvider (A2).
 function Root() {
   const hook = useBiopulseData();
+  const auth = useAuth();
+  // Mientras verifica el token, no renderizamos nada (evita parpadeo de onboarding).
+  if (auth.status === "loading") {
+    return <div style={{ background: C.bg, minHeight: "100vh" }} />;
+  }
+  // El perfil del usuario autenticado (si lo hay) alimenta el Coach/contexto.
+  const userProfile = auth.profile || null;
   const data = hook.customData || hook.demoData;
   const today = data[data.length - 1];
   return (
-    <CoachProvider today={today}>
-      <AppInner hook={hook} />
+    <CoachProvider today={today} userProfile={userProfile}>
+      <AppInner hook={hook} auth={auth} />
     </CoachProvider>
   );
 }
