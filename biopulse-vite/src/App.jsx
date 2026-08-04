@@ -76,7 +76,7 @@ function AppInner({ hook, auth }) {
         {tab === "dash" && <Dashboard data={data} today={today} riskThreshold={riskThreshold} onOpenSettings={() => setTab("config")} onBreathe={() => setBreathOpen(true)} />}
         {tab === "live" && <Live today={today} />}
         {tab === "sleep" && <Sleep data={data} onBreathe={() => setBreathOpen(true)} />}
-        {tab === "config" && <Config data={data} hook={hook} onUseDemo={() => setShowModal(true)} />}
+        {tab === "config" && <Config data={data} hook={hook} auth={auth} />}
         {tab === "tech" && <Technical data={data} />}
       </div>
 

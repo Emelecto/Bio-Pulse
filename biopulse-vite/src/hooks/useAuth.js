@@ -42,7 +42,6 @@ export function useAuth() {
           setStatus("ready");
         } catch {
           localStorage.removeItem(TOKEN_KEY);
-          // sin token valido: si habia elegido demo, no poppea; sino muestra onboarding
           setSkipped(!!localStorage.getItem(SKIP_KEY));
           setStatus("ready");
         } finally {
@@ -50,7 +49,6 @@ export function useAuth() {
         }
         return;
       }
-      // sin token: ¿eligio demo antes?
       setSkipped(!!localStorage.getItem(SKIP_KEY));
       setStatus("ready");
       setBooted(true);
@@ -99,7 +97,8 @@ export function useAuth() {
 
   const logout = useCallback(() => {
     localStorage.removeItem(TOKEN_KEY);
-    setToken(null); setUser(null); setProfile(null);
+    localStorage.removeItem(SKIP_KEY);
+    setToken(null); setUser(null); setProfile(null); setSkipped(false);
   }, []);
 
   // "Usar datos demo": no hay cuenta; recordamos la eleccion para no poppear.
