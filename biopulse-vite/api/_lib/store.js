@@ -10,8 +10,11 @@ const OS = await import("node:os");
 const PATH = OS.tmpdir() + "/biopulse-users.json";
 
 let kvAvailable = false;
-const KV_URL = process.env.KV_REST_API_URL;
-const KV_TOKEN = process.env.KV_REST_API_TOKEN;
+// Acepta tanto Vercel KV como Upstash Redis (mismo API REST GET/SET).
+// Vercel KV inyecta KV_REST_API_URL/TOKEN; Upstash inyecta
+// UPSTASH_REDIS_REST_URL/TOKEN. Usamos el que exista.
+const KV_URL = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL || process.env.UPSTASH_REDIS_URL;
+const KV_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN || process.env.UPSTASH_REDIS_TOKEN;
 
 async function kvGet(key) {
   const r = await fetch(`${KV_URL}/get/${encodeURIComponent(key)}`, { headers: { Authorization: `Bearer ${KV_TOKEN}` } });
