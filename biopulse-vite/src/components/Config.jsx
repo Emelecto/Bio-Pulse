@@ -5,9 +5,10 @@
 // como props desde AppInner, evitando instanciar useAuth dos veces.
 // ============================================================
 import React, { useState } from "react";
-import { User, Key, Upload, Database, Trash2, RefreshCw, AlertTriangle, Mail, CheckCircle2, LogIn, UserPlus, Sparkles } from "lucide-react";
+import { User, Key, Upload, Database, Trash2, RefreshCw, AlertTriangle, Mail, CheckCircle2, LogIn, UserPlus, Sparkles, Pencil } from "lucide-react";
 import { C } from "./ui.jsx";
 import { useTheme } from "../lib/theme.jsx";
+import Onboarding from "./Onboarding.jsx";
 
 export default function Config({ data, hook, auth }) {
   const {
@@ -22,6 +23,24 @@ export default function Config({ data, hook, auth }) {
   const [view, setView] = useState("choice"); // choice | login | signup
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
+  const [editing, setEditing] = useState(false);
+
+  // Edicion de perfil: reusa el cuestionario Onboarding (modo edicion),
+  // guarda via auth.saveProfile (backend) -> queda linked a la cuenta.
+  if (editing) {
+    return (
+      <Onboarding
+        auth={auth}
+        editMode
+        initialProfile={auth.profile}
+        onSave={async (profile) => {
+          if (profile === null) { setEditing(false); return; }
+          try { await auth.saveProfile(profile); } catch (e) { setErr(e.message || "No se pudo guardar."); }
+          setEditing(false);
+        }}
+      />
+    );
+  }
 
   const doSignUp = async (e) => {
     e.preventDefault();
@@ -66,17 +85,36 @@ export default function Config({ data, hook, auth }) {
 
         {/* LOGGED IN */}
         {auth.token ? (
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div style={{ background: C.teal }} className="w-9 h-9 rounded-full flex items-center justify-center text-[13px] font-bold">
-                <span style={{ color: C.bg }}>{displayName[0]?.toUpperCase()}</span>
+          <div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div style={{ background: C.teal }} className="w-9 h-9 rounded-full flex items-center justify-center text-[13px] font-bold">
+                  <span style={{ color: C.bg }}>{displayName[0]?.toUpperCase()}</span>
+                </div>
+                <div>
+                  <span style={{ color: C.text }} className="text-[13px] font-medium block">{displayName}</span>
+                  <span style={{ color: C.textFaint }} className="text-[11px]">{auth.user?.email}</span>
+                </div>
               </div>
-              <div>
-                <span style={{ color: C.text }} className="text-[13px] font-medium block">{displayName}</span>
-                <span style={{ color: C.textFaint }} className="text-[11px]">{auth.user?.email}</span>
+              <button onClick={auth.logout} style={{ color: C.rose }} className="text-[12px]">Cerrar sesión</button>
+            </div>
+            {/* Resumen del perfil linked a la cuenta */}
+            <div className="mt-3 rounded-xl px-3 py-2.5" style={{ background: C.bgSoft, border: `1px solid ${C.borderSoft}` }}>
+              <div className="flex items-center justify-between mb-1.5">
+                <span style={{ color: C.textMuted }} className="text-[11px] font-medium">Tu perfil</span>
+                <button onClick={() => setEditing(true)} style={{ color: C.teal }} className="text-[11px] font-medium flex items-center gap-1">
+                  <Pencil size={11} /> Editar
+                </button>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {profileChips(auth.profile).map((c, i) => (
+                  <span key={i} style={{ background: `${C.teal}14`, color: C.teal }} className="text-[10.5px] px-2 py-0.5 rounded-full">{c}</span>
+                ))}
+                {profileChips(auth.profile).length === 0 && (
+                  <span style={{ color: C.textFaint }} className="text-[10.5px]">Sin datos de perfil aún.</span>
+                )}
               </div>
             </div>
-            <button onClick={auth.logout} style={{ color: C.rose }} className="text-[12px]">Cerrar sesión</button>
           </div>
         ) : view === "choice" ? (
           /* ELECCIÓN INICIAL: TRES BOTONES CLAROS */
@@ -206,4 +244,23 @@ export default function Config({ data, hook, auth }) {
       </div>
     </div>
   );
+}
+
+// Resume del perfil en chips para la seccion "Tu perfil" de Config.
+function profileChips(p) {
+  if (!p) return [];
+  const out = [];
+  if (p.age) out.push(`${p.age} años`);
+  if (p.sex && p.sex !== "ns") out.push(p.sex);
+  if (p.weightKg) out.push(`${p.weightKg} kg`);
+  if (p.heightCm) out.push(`${p.heightCm} cm`);
+  if (p.activity) out.push(`Act: ${p.activity}`);
+  if (p.smoke && p.smoke !== "no") out.push(`Fuma: ${p.smoke}`);
+  if (Array.isArray(p.conditions)) {
+    p.conditions.forEach((c) => {
+      if (c === "ninguna") return;
+      out.push(c.startsWith("otra:") ? c.slice(5) : c);
+    });
+  }
+  return out;
 }
