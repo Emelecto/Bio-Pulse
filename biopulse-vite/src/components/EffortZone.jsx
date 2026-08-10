@@ -15,7 +15,7 @@ export default function EffortZone({ metrics, C }) {
     <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: 14, color: C.text }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 2 }}>
         <span style={{ fontWeight: 700, fontSize: 14 }}>Zona de esfuerzo ideal</span>
-        <span style={{ fontSize: 12, color: C.accent, fontWeight: 600 }}>{t.label}</span>
+        <span style={{ fontSize: 12, color: C.teal, fontWeight: 600 }}>{t.label}</span>
       </div>
       <div style={{ fontSize: 11, color: C.textMuted, marginBottom: 10 }}>
         Readiness de hoy: <b style={{ color: C.text }}>{readiness}/100</b>
@@ -29,7 +29,7 @@ export default function EffortZone({ metrics, C }) {
         }} />
         <div style={{
           position: "absolute", left: `calc(${pct(t.mid)} - 2px)`, width: 4, top: -3, bottom: -3,
-          background: C.accent, borderRadius: 2,
+          background: C.teal, borderRadius: 2,
         }} />
       </div>
       <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: C.textMuted, marginTop: 4 }}>

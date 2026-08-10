@@ -1,178 +1,153 @@
 // ============================================================
-// Logger.jsx — Registro de hábitos/sustancias + Banderas de seguridad.
-// Presets (45) + personalizado. Lista por día. Acotado a móvil.
+// Logger — registro de hábitos/sustancias.
+// Flujo organizado: 1) elige CATEGORÍA, 2) elige el ítem de esa
+// categoría, 3) se abre un MODAL en pantalla para cantidad/hora/nota.
+// Sin scroll forzado para registrar. Incluye banderas de seguridad.
 // ============================================================
-import { useMemo, useState } from "react";
-import { LOG_PRESETS, LOG_CATEGORIES, SAFETY_FLAGS, LOG_PRESET_BY_ID } from "../lib/logPresets.js";
-import { logsByDay } from "../lib/bioUtils.js";
+import React, { useState, useMemo } from "react";
+import { X, Plus, Trash2, AlertTriangle } from "lucide-react";
+import { C } from "./ui.jsx";
+import { LOG_CATEGORIES, LOG_PRESETS, SAFETY_FLAGS } from "../lib/logPresets.js";
 
-function pad(n) { return String(n).padStart(2, "0"); }
-function fmtDate(d) { const x = new Date(d); return `${pad(x.getDate())}/${pad(x.getMonth() + 1)} ${pad(x.getHours())}:${pad(x.getMinutes())}`; }
+const CAT_ORDER = ["consumo", "medicamento", "suplemento", "habito", "biologico"];
 
-export default function Logger({ logs, addLog, removeLog, C }) {
-  const [cat, setCat] = useState("all");
-  const [sel, setSel] = useState(null);
+export default function Logger({ logs = [], onAdd, onRemove }) {
+  const [cat, setCat] = useState(null); // categoría elegida
+  const [preset, setPreset] = useState(null); // preset elegido (abre modal)
   const [amount, setAmount] = useState(1);
+  const [hour, setHour] = useState("");
   const [note, setNote] = useState("");
-  const [customLabel, setCustomLabel] = useState("");
 
-  const filtered = useMemo(
-    () => (cat === "all" ? LOG_PRESETS : LOG_PRESETS.filter((p) => p.category === cat)),
+  const presetsOfCat = useMemo(
+    () => (cat ? LOG_PRESETS.filter((p) => p.category === cat) : []),
     [cat]
   );
 
-  // Banderas de seguridad: combos de hoy
-  const todayKey = new Date().toISOString().slice(0, 10);
-  const todayPresets = useMemo(() => {
-    const set = new Set();
-    for (const l of logs) if (new Date(l.ts).toISOString().slice(0, 10) === todayKey) set.add(l.preset);
-    return set;
-  }, [logs, todayKey]);
+  const todayIds = useMemo(() => {
+    const todayKey = new Date().toISOString().slice(0, 10);
+    return logs.filter((l) => (l.ts || "").slice(0, 10) === todayKey).map((l) => l.preset);
+  }, [logs]);
 
-  const flags = useMemo(
-    () => SAFETY_FLAGS.filter((f) => f.when.every((p) => todayPresets.has(p))),
-    [todayPresets]
-  );
+  // Banderas de seguridad activas hoy.
+  const flags = useMemo(() => {
+    const set = new Set(todayIds);
+    return SAFETY_FLAGS.filter((f) => f.when.every((id) => set.has(id)));
+  }, [todayIds]);
 
-  const submit = async () => {
-    if (!sel) return;
-    const preset = sel === "custom"
-      ? { id: "custom", label: customLabel || "Personalizado", category: "otro", unit: "" }
-      : LOG_PRESET_BY_ID[sel];
-    await addLog({
+  const openModal = (p) => {
+    setPreset(p);
+    setAmount(1);
+    setHour("");
+    setNote("");
+  };
+
+  const save = async () => {
+    if (!preset) return;
+    await onAdd({
       preset: preset.id,
       label: preset.label,
       category: preset.category,
       unit: preset.unit,
-      amount: +amount || 1,
+      amount: Number(amount) || 1,
       note: note.trim(),
-      ts: new Date().toISOString(),
+      ts: hour ? new Date().toISOString().slice(0, 11) + hour + ":00.000Z" : new Date().toISOString(),
     });
-    setSel(null); setAmount(1); setNote(""); setCustomLabel("");
+    setPreset(null);
   };
 
-  const days = useMemo(() => {
-    const m = logsByDay(logs);
-    return Object.keys(m).sort().reverse();
-  }, [logs]);
-
   return (
-    <div style={{ padding: "14px 12px 24px", color: C.text, fontSize: 14 }}>
-      <h2 style={{ fontSize: 18, fontWeight: 700, margin: "2px 0 2px" }}>Registro</h2>
-      <p style={{ color: C.textMuted, fontSize: 12, margin: "0 0 10px" }}>
-        Anota hábitos y sustancias para ver cómo cambian tus scores.
-      </p>
-
-      {/* Banderas de seguridad */}
+    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      {/* BANDERAS DE SEGURIDAD */}
       {flags.length > 0 && (
-        <div style={{ marginBottom: 12 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {flags.map((f) => (
-            <div key={f.id} style={{
-              background: f.level === "danger" ? "rgba(239,68,68,.15)" : f.level === "warn" ? "rgba(245,158,11,.15)" : "rgba(56,189,248,.15)",
-              border: `1px solid ${f.level === "danger" ? "#ef4444" : f.level === "warn" ? "#f59e0b" : "#38bdf8"}`,
-              borderRadius: 10, padding: "8px 10px", marginBottom: 6, fontSize: 12,
-            }}>
-              <b>⚠️ Seguridad:</b> {f.msg}
+            <div key={f.id} style={{ background: f.level === "danger" ? "rgba(255,0,85,.12)" : "rgba(245,158,11,.12)", border: `1px solid ${f.level === "danger" ? C.rose : C.amber}`, borderRadius: 14, padding: 12, display: "flex", gap: 10 }}>
+              <AlertTriangle size={18} color={f.level === "danger" ? C.rose : C.amber} style={{ flexShrink: 0, marginTop: 2 }} />
+              <span style={{ color: C.text, fontSize: 12.5, lineHeight: 1.4 }}>{f.msg}</span>
             </div>
           ))}
         </div>
       )}
 
-      {/* Selector de categoría */}
-      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
-        <Chip active={cat === "all"} onClick={() => setCat("all")} C={C}>Todos</Chip>
-        {Object.entries(LOG_CATEGORIES).map(([k, v]) => (
-          <Chip key={k} active={cat === k} onClick={() => setCat(k)} C={C}>{v.label}</Chip>
-        ))}
-      </div>
-
-      {/* Grid de presets */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
-        {filtered.map((p) => (
-          <button key={p.id} onClick={() => setSel(p.id)} style={{
-            background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "10px 4px",
-            color: C.text, fontSize: 11, textAlign: "center", cursor: "pointer",
-          }}>
-            <div style={{ fontSize: 20 }}>{p.icon}</div>
-            <div style={{ marginTop: 2, lineHeight: 1.1 }}>{p.label}</div>
-          </button>
-        ))}
-        <button onClick={() => setSel("custom")} style={{
-          background: C.card, border: `1px dashed ${C.border}`, borderRadius: 12, padding: "10px 4px",
-          color: C.textMuted, fontSize: 11, textAlign: "center", cursor: "pointer",
-        }}>
-          <div style={{ fontSize: 20 }}>➕</div>
-          <div style={{ marginTop: 2 }}>Personalizado</div>
-        </button>
-      </div>
-
-      {/* Panel de captura */}
-      {sel && (
-        <div style={{ marginTop: 12, background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: 12 }}>
-          <div style={{ fontWeight: 600, marginBottom: 8 }}>
-            {sel === "custom" ? "Personalizado" : LOG_PRESET_BY_ID[sel]?.icon + " " + LOG_PRESET_BY_ID[sel]?.label}
-          </div>
-          {sel === "custom" && (
-            <input
-              value={customLabel} onChange={(e) => setCustomLabel(e.target.value)}
-              placeholder="Nombre (ej. Té matcha)"
-              style={inputStyle(C)}
-            />
-          )}
-          <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "8px 0" }}>
-            <span style={{ fontSize: 12, color: C.textMuted }}>Cantidad</span>
-            <button onClick={() => setAmount(Math.max(0.5, +amount - 0.5))} style={btnSm(C)}>−</button>
-            <span style={{ minWidth: 36, textAlign: "center" }}>{amount}</span>
-            <button onClick={() => setAmount(+amount + 0.5)} style={btnSm(C)}>+</button>
-            <span style={{ fontSize: 11, color: C.textMuted }}>
-              {sel === "custom" ? "" : LOG_PRESET_BY_ID[sel]?.unit}
-            </span>
-          </div>
-          <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Nota (opcional)" style={inputStyle(C)} />
-          <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-            <button onClick={submit} style={{ ...btnPrimary(C), flex: 1 }}>Guardar</button>
-            <button onClick={() => setSel(null)} style={btnGhost(C)}>Cancelar</button>
+      {/* SELECTOR DE CATEGORÍA */}
+      {!cat && (
+        <div>
+          <div style={{ color: C.text, fontWeight: 600, fontSize: 14, marginBottom: 10 }}>¿Qué vas a registrar?</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            {CAT_ORDER.map((cid) => {
+              const c = LOG_CATEGORIES[cid];
+              return (
+                <button key={cid} onClick={() => setCat(cid)} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, padding: 16, display: "flex", alignItems: "center", gap: 12, cursor: "pointer", textAlign: "left" }}>
+                  <span style={{ width: 10, height: 10, borderRadius: 999, background: c.color, flexShrink: 0 }} />
+                  <span style={{ color: C.text, fontWeight: 600, fontSize: 14 }}>{c.label}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
       )}
 
-      {/* Lista por día */}
-      <h3 style={{ fontSize: 14, fontWeight: 700, margin: "18px 0 6px" }}>Historial</h3>
-      {days.length === 0 && <p style={{ color: C.textMuted, fontSize: 12 }}>Aún no has registrado nada.</p>}
-      {days.map((d) => (
-        <div key={d} style={{ marginBottom: 10 }}>
-          <div style={{ fontSize: 12, color: C.textMuted, marginBottom: 4 }}>{d}</div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-            {logsByDay(logs)[d].map((l) => (
-              <div key={l.id} style={{
-                display: "flex", alignItems: "center", justifyContent: "space-between",
-                background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: "6px 8px", fontSize: 12,
-              }}>
-                <span>{l.label} · {l.amount}{l.unit ? " " + l.unit : ""}{l.note ? ` · ${l.note}` : ""}</span>
-                <button onClick={() => removeLog(l.id)} style={{ background: "transparent", border: "none", color: C.textMuted, cursor: "pointer" }}>✕</button>
+      {/* LISTA DE PRESETS DE LA CATEGORÍA */}
+      {cat && !preset && (
+        <div>
+          <button onClick={() => setCat(null)} style={{ background: "transparent", border: "none", color: C.teal, fontSize: 13, fontWeight: 600, padding: 0, marginBottom: 10, cursor: "pointer" }}>
+            ← Cambiar categoría
+          </button>
+          <div style={{ color: C.text, fontWeight: 600, fontSize: 14, marginBottom: 10 }}>{LOG_CATEGORIES[cat].label}</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {presetsOfCat.map((p) => (
+              <button key={p.id} onClick={() => openModal(p)} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: 14, display: "flex", alignItems: "center", gap: 12, cursor: "pointer", textAlign: "left" }}>
+                <span style={{ fontSize: 20 }}>{p.icon}</span>
+                <span style={{ color: C.text, fontWeight: 600, fontSize: 14, flex: 1 }}>{p.label}</span>
+                <span style={{ color: C.textFaint, fontSize: 11 }}>{p.unit}</span>
+                <Plus size={18} color={C.teal} />
+              </button>
+            ))}
+            <button onClick={() => openModal({ id: "custom", label: "Personalizado", category: cat, unit: "", icon: "✍️" })} style={{ background: C.bgSoft, border: `1px dashed ${C.border}`, borderRadius: 14, padding: 14, display: "flex", alignItems: "center", gap: 12, cursor: "pointer", color: C.textMuted, fontSize: 13 }}>
+              <span style={{ fontSize: 18 }}>✍️</span> Personalizado
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* REGISTROS DE HOY */}
+      {logs.length > 0 && (
+        <div>
+          <div style={{ color: C.textMuted, fontSize: 12, marginBottom: 8 }}>Registrado hoy</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {logs.slice().reverse().map((l) => (
+              <div key={l.id} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "10px 12px", display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ color: C.text, fontSize: 13.5, flex: 1 }}>{l.label} {Number(l.amount) ? `· ${l.amount} ${l.unit || ""}`.trim() : ""}</span>
+                <button onClick={() => onRemove && onRemove(l.id)} style={{ background: "transparent", border: "none", color: C.textFaint, cursor: "pointer" }}><Trash2 size={16} /></button>
               </div>
             ))}
           </div>
         </div>
-      ))}
+      )}
+
+      {/* MODAL DE REGISTRO EN PANTALLA */}
+      {preset && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center px-4" style={{ background: "rgba(2,6,12,0.74)", backdropFilter: "blur(10px)" }} onClick={() => setPreset(null)}>
+          <div onClick={(e) => e.stopPropagation()} className="relative w-full max-w-sm rounded-[24px] p-6 mb-4 sm:mb-0" style={{ background: C.card, border: `1px solid ${C.border}` }}>
+            <button onClick={() => setPreset(null)} aria-label="Cerrar" className="absolute top-4 right-4 w-9 h-9 rounded-full flex items-center justify-center" style={{ background: C.bgSoft, color: C.textMuted }}><X size={16} /></button>
+            <div style={{ color: C.textFaint, fontSize: 12, marginBottom: 2 }}>{LOG_CATEGORIES[preset.category]?.label}</div>
+            <div style={{ color: C.text, fontWeight: 700, fontSize: 18, marginBottom: 16 }}>{preset.icon} {preset.label}</div>
+
+            <label style={{ color: C.textMuted, fontSize: 12 }}>Cantidad{preset.unit ? ` (${preset.unit})` : ""}</label>
+            <input type="number" min="0" step="0.5" value={amount} onChange={(e) => setAmount(e.target.value)} className="w-full mt-1 mb-4 rounded-xl px-3 py-2.5 text-[15px]" style={{ background: C.bgSoft, border: `1px solid ${C.border}`, color: C.text }} />
+
+            <label style={{ color: C.textMuted, fontSize: 12 }}>Hora (opcional)</label>
+            <input type="time" value={hour} onChange={(e) => setHour(e.target.value)} className="w-full mt-1 mb-4 rounded-xl px-3 py-2.5 text-[15px]" style={{ background: C.bgSoft, border: `1px solid ${C.border}`, color: C.text }} />
+
+            <label style={{ color: C.textMuted, fontSize: 12 }}>Nota (opcional)</label>
+            <input type="text" value={note} onChange={(e) => setNote(e.target.value)} placeholder="Ej: después de entrenar" className="w-full mt-1 mb-5 rounded-xl px-3 py-2.5 text-[15px]" style={{ background: C.bgSoft, border: `1px solid ${C.border}`, color: C.text }} />
+
+            <button onClick={save} className="w-full text-[15px] font-semibold py-3 rounded-2xl active:scale-[0.98] transition-transform" style={{ background: C.teal, color: "#050A10" }}>
+              Guardar registro
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
-
-function Chip({ active, onClick, children, C }) {
-  return (
-    <button onClick={onClick} style={{
-      background: active ? C.accent : C.card, color: active ? "#fff" : C.textMuted,
-      border: `1px solid ${active ? C.accent : C.border}`, borderRadius: 999, padding: "4px 10px", fontSize: 11, cursor: "pointer",
-    }}>{children}</button>
-  );
-}
-function inputStyle(C) {
-  return {
-    width: "100%", background: C.inputBg, border: `1px solid ${C.border}`, borderRadius: 8,
-    padding: "8px 10px", color: C.text, fontSize: 13, marginBottom: 8, outline: "none",
-  };
-}
-function btnSm(C) { return { width: 28, height: 28, borderRadius: 8, border: `1px solid ${C.border}`, background: C.inputBg, color: C.text, cursor: "pointer" }; }
-function btnPrimary(C) { return { background: C.accent, color: "#fff", border: "none", borderRadius: 8, padding: "9px 12px", fontSize: 13, fontWeight: 600, cursor: "pointer" }; }
-function btnGhost(C) { return { background: "transparent", color: C.textMuted, border: `1px solid ${C.border}`, borderRadius: 8, padding: "9px 12px", fontSize: 13, cursor: "pointer" }; }

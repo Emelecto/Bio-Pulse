@@ -10,8 +10,8 @@ import { Moon, AlertTriangle, ChevronRight, Database, Sparkles, Activity, Wind, 
 import { C } from "./ui.jsx";
 import BioScoreRing from "./BioScoreRing.jsx";
 import RiskScoreRing from "./RiskScoreRing.jsx";
-import { Sparkline } from "./ui.jsx";
 import RiskForecast from "./RiskForecast.jsx";
+import EnergyMap from "./EnergyMap.jsx";
 import { useCoach } from "../coach/CoachContext.jsx";
 import { computeEnergyMap, forecastRisk } from "../lib/bioUtils.js";
 
@@ -97,32 +97,10 @@ export default function Inicio({ data, today, riskThreshold, userProfile, onOpen
         </div>
       )}
 
-      {/* 3c) CURVA DE ENERGÍA DEL DÍA */}
+      {/* 3c) CURVA DE ENERGÍA DEL DÍA (misma estética que Técnico) */}
       <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, padding: 14 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-          <Activity size={18} color={C.teal} />
-          <span style={{ color: C.text, fontWeight: 600, fontSize: 14 }}>Curva de energía del día</span>
-        </div>
-        {energySeries.length >= 2 ? (
-          <>
-            <div style={{ background: C.bgSoft, borderRadius: 12, padding: "6px 4px" }}>
-              <Sparkline data={energySeries} color={C.teal} height={56} />
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}>
-              <span style={{ color: C.textFaint, fontSize: 10.5 }}>08:00</span>
-              <span style={{ color: C.textFaint, fontSize: 10.5 }}>15:00</span>
-              <span style={{ color: C.textFaint, fontSize: 10.5 }}>22:00</span>
-            </div>
-            {energy?.chips?.length > 0 && (
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
-                {energy.chips.map((c, i) => (
-                  <span key={i} style={{ background: C.bgSoft, border: `1px solid ${C.border}`, color: C.textMuted, fontSize: 11, padding: "3px 8px", borderRadius: 999 }}>
-                    {c.icon} {c.label} · {c.time}
-                  </span>
-                ))}
-              </div>
-            )}
-          </>
+        {energy ? (
+          <EnergyMap map={energy} />
         ) : (
           <div style={{ color: C.textFaint, fontSize: 12 }}>Cargando curva de energía…</div>
         )}
