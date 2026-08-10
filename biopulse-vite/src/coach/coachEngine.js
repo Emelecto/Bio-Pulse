@@ -112,7 +112,7 @@ const KEYWORD_BANK = [
   { keys: ["calor", "verano", "temperatura"], bank: "calor" },
   { keys: ["motiv", "ánimo", "animo", "comenzar"], bank: "motivacion" },
 ];
-export function getLocalReply(today, question) {
+export function getLocalReply(today, question, logs = []) {
   const profile = selectCoachProfile(today);
   let bankKey = profile;
   const q = (question || "").toLowerCase();
@@ -122,7 +122,15 @@ export function getLocalReply(today, question) {
   const bank = COACH_BANKS[bankKey] || COACH_BANKS[profile] || COACH_BANKS.diaBueno;
   const idx = rotationIndex(bank.length, "biopulse_coach_chat_" + bankKey);
   const pick = bank[idx];
-  return pick ? pick.a : "Pregúntame sobre tus métricas de hoy.";
+  let reply = pick ? pick.a : "Pregúntame sobre tus métricas de hoy.";
+  // Contexto de logs del usuario (hábitos/sustancias recientes).
+  const todayKey = new Date().toISOString().slice(0, 10);
+  const todays = logs.filter((l) => new Date(l.ts).toISOString().slice(0, 10) === todayKey);
+  if (todays.length) {
+    const names = todays.map((l) => l.label).slice(0, 4).join(", ");
+    reply += ` Hoy registraste: ${names}.`;
+  }
+  return reply;
 }
 
 // Interfaz para LLM real. `callLLM` es async (inyectado desde el backend/

@@ -1,31 +1,29 @@
 // ============================================================
 // TabBar — barra inferior flotante tipo iOS 26 (liquid glass).
-// Cápsula redonda y translúcida con indicador deslizante;
-// mueve la luz de fondo según la pestaña activa.
-// Orden: Técnico | Live | Inicio | Sueño | Ajustes
+// Orden: Live | Datos | Inicio | Sueño | Ajustes (Inicio al centro).
 // ============================================================
 import React, { useEffect } from "react";
-import { FlaskConical, Activity, Home, Moon, Settings } from "lucide-react";
+import { Activity, Database, Home, Moon, Settings } from "lucide-react";
 import { C } from "./ui.jsx";
 
 const TABS = [
-  { id: "tech", label: "Técnico", icon: FlaskConical },
   { id: "live", label: "Live", icon: Activity },
-  { id: "dash", label: "Inicio", icon: Home },
+  { id: "datos", label: "Datos", icon: Database },
+  { id: "inicio", label: "Inicio", icon: Home },
   { id: "sleep", label: "Sueño", icon: Moon },
   { id: "config", label: "Ajustes", icon: Settings },
 ];
 
 // Cada tab desplaza la luz de fondo hacia una zona distinta (iOS 26: el wallpaper "respira" con la navegación).
 const TAB_BG = {
-  tech:   { x: -10, y: -6 },
-  live:   { x: 8,   y: -8 },
-  dash:   { x: 0,   y: 6 },
-  sleep:  { x: -6,  y: 10 },
-  config: { x: 10,  y: 4 },
+  live:   { x: -12, y: -6 },
+  datos:  { x: -4,  y: -8 },
+  inicio: { x: 0,   y: 6 },
+  sleep:  { x: 6,   y: 10 },
+  config: { x: 12,  y: 4 },
 };
 
-export default function TabBar({ active, onChange }) {
+export default function TabBar({ active, onChange, safetyFlag }) {
   const idx = Math.max(0, TABS.findIndex((t) => t.id === active));
 
   // Mueve la luz de fondo al cambiar de pestaña.
@@ -87,6 +85,17 @@ export default function TabBar({ active, onChange }) {
               >
                 {t.label}
               </span>
+              {t.id === "datos" && safetyFlag && (
+                <span
+                  aria-hidden
+                  style={{
+                    position: "absolute", top: 4, right: "50%",
+                    transform: "translateX(14px)",
+                    width: 8, height: 8, borderRadius: "50%",
+                    background: "#ef4444", boxShadow: "0 0 8px #ef4444",
+                  }}
+                />
+              )}
             </button>
           );
         })}

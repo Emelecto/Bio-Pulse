@@ -48,15 +48,19 @@ function openingMessage(today) {
   return { role: "coach", text: (a.title ? a.title + ". " : "") + a.advice, source: a.source };
 }
 
-export function CoachProvider({ children, today }) {
+export function CoachProvider({ children, today, logs = [] }) {
   const [messages, setMessages] = useState(() => [openingMessage(today)]);
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState(null);
   const [aiConnected, setAiConnected] = useState(false);
   const [tab, setTabState] = useState("dash");
+  const [logsState, setLogsState] = useState(logs || []);
+  useEffect(() => { if (logs && logs.length) setLogsState(logs); }, [logs]);
   const todayRef = useRef(today);
   todayRef.current = today;
+  const logsRef = useRef(logs || []);
+  logsRef.current = logs;
 
   // Mejora el saludo con Groq al montar (sin bloquear), igual que antes.
   useEffect(() => {
@@ -119,7 +123,7 @@ export function CoachProvider({ children, today }) {
     };
 
     const fallbackLocal = () => {
-      const fb = getLocalReply(todayRef.current || {}, text);
+      const fb = getLocalReply(todayRef.current || {}, text, logsRef.current || []);
       // Reemplaza el placeholder vacío si el stream no produjo nada.
       setMessages((m) => {
         const copy = m.slice();
@@ -135,7 +139,7 @@ export function CoachProvider({ children, today }) {
       const to = setTimeout(() => ctrl.abort(), 15000);
       const res = await fetch(COACH_API, {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ metrics: todayRef.current || {}, message: text, history, tab }),
+        body: JSON.stringify({ metrics: todayRef.current || {}, message: text, history, tab, logs: logsRef.current || [] }),
         signal: ctrl.signal,
       });
       clearTimeout(to);

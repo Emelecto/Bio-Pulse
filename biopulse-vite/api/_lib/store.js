@@ -111,6 +111,19 @@ export async function getRaw(key) {
   return all[key] || null;
 }
 
+// --- Logs de hábitos/sustancias del usuario (Registro) ---
+export async function putLog(email, logs) {
+  if (kvAvailable) { await kvSet(`log:${email}`, logs); return; }
+  const all = await fsGetAll();
+  all[`log:${email}`] = logs;
+  await fsSetAll(all);
+}
+export async function getLog(email) {
+  if (kvAvailable) return await kvGet(`log:${email}`);
+  const all = await fsGetAll();
+  return all[`log:${email}`] || null;
+}
+
 // Reset SIN pregunta de recuperacion: guarda un codigo de 6 digitos
 // (con TTL) que se muestra en pantalla al solicitante (no hay email service).
 export async function saveResetCode(email, code) {

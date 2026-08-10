@@ -1,38 +1,39 @@
 // ============================================================
 // BioPulse — App shell (mobile-first, 5 tabs)
-// Tabs: Técnico | Live | Dashboard | Sueño | Config
-// Orden de barra inferior: Tecnico | Live | Inicio | Sueno | Ajustes
+// Tabs: Live | Datos | Inicio | Sueño | Ajustes (Inicio al centro)
+// Técnico = pantalla completa abierta desde Inicio.
 //
-// El estado de tab ahora vive en <CoachProvider> (A2) para que el
-// chat del coach persista entre pestañas. <Coach/> (FAB + sheet)
-// se monta UNA SOLA VEZ, fuera del contenido de tabs.
+// El estado de tab vive en <CoachProvider> (A2) para que el chat del
+// coach persista entre pestañas. <Coach/> se monta UNA SOLA VEZ.
 // ============================================================
 import React, { useState } from "react";
-import { Activity, ChevronRight, FileText, Database, Settings2 } from "lucide-react";
+import { Activity, ChevronRight, FileText, Database, Plus } from "lucide-react";
 import { C, GLOBAL_STYLE } from "./components/ui.jsx";
 import { ThemeProvider, useTheme } from "./lib/theme.jsx";
 import { useBiopulseData } from "./hooks/useBiopulseData.js";
+import { useLogs } from "./hooks/useLogs.js";
 import TabBar from "./components/TabBar.jsx";
 import DataSourceModal from "./components/DataSourceModal.jsx";
-import Dashboard from "./components/Dashboard.jsx";
+import Inicio from "./components/Inicio.jsx";
 import Live from "./components/Live.jsx";
 import Sleep from "./components/Sleep.jsx";
 import Config from "./components/Config.jsx";
 import Technical from "./components/Technical.jsx";
+import Datos from "./components/Datos.jsx";
 import BreathSession from "./components/BreathSession.jsx";
 import Onboarding from "./components/Onboarding.jsx";
 import Coach from "./components/Coach.jsx";
 import { useAuth } from "./hooks/useAuth.js";
 import { CoachProvider, useCoach } from "./coach/CoachContext.jsx";
+import { SAFETY_FLAGS } from "./lib/logPresets.js";
 
-// AppInner vive DENTRO del ThemeProvider: asi useTheme() lee el contexto real
-// y re-renderiza toda la app (y todos los tabs) al cambiar el tema, haciendo
-// que el toggle claro/oscuro se vea de inmediato (sin salir de Config).
 function AppInner({ hook, auth, userProfile }) {
   const { theme, forceVersion } = useTheme();
   void forceVersion;
   const { tab, setTab } = useCoach();
   const [breathOpen, setBreathOpen] = useState(false);
+  const [techOpen, setTechOpen] = useState(false);
+  const logs = useLogs();
   const {
     customData, demoData, customSourceLabel, historyRange, setHistoryRange,
     riskThreshold, setRiskThreshold, clearAllData, showModal, setShowModal,
@@ -43,11 +44,16 @@ function AppInner({ hook, auth, userProfile }) {
 
   const data = customData || demoData;
   const today = data[data.length - 1];
-
   const sourcePillLabel = customSourceLabel ? customSourceLabel : "Datos demo";
 
-  // Onboarding: se muestra solo si NO hay sesion valida (token) y el usuario
-  // no eligio "Usar datos demo" antes. Los usuarios con cuenta no lo ven cada vez.
+  // Bandera de seguridad activa hoy (badge en Datos)
+  const todayKey = new Date().toISOString().slice(0, 10);
+  const hasSafetyFlag = logs.logs.some(
+    (l) => new Date(l.ts).toISOString().slice(0, 10) === todayKey &&
+      SAFETY_FLAGS.some((f) => f.when.includes(l.preset))
+  ) && new Set(logs.logs.filter((l)=>new Date(l.ts).toISOString().slice(0,10)===todayKey).map(l=>l.preset)).size >= 2;
+
+  // Onboarding: solo si NO hay sesión válida ni se eligió demo.
   if (!auth.token && !auth.skipped) {
     return <Onboarding auth={auth} onDemo={auth.skip} />;
   }
@@ -68,19 +74,32 @@ function AppInner({ hook, auth, userProfile }) {
           <button onClick={() => setShowModal(true)}
             style={{ background: C.card, border: `1px solid ${C.border}`, color: C.textMuted }}
             className="glass w-10 h-10 rounded-full flex items-center justify-center active:scale-95 transition-transform" aria-label="Fuente de datos">
-            <Settings2 size={14} />
+            <FileText size={14} />
           </button>
         </div>
 
         {/* TAB CONTENT */}
-        {tab === "dash" && <Dashboard data={data} today={today} riskThreshold={riskThreshold} userProfile={userProfile} onOpenSettings={() => setTab("config")} onBreathe={() => setBreathOpen(true)} />}
+        {tab === "inicio" && <Inicio data={data} today={today} riskThreshold={riskThreshold} userProfile={userProfile} onOpenTech={() => setTechOpen(true)} onOpenDatos={() => setTab("datos")} onBreathe={() => setBreathOpen(true)} />}
         {tab === "live" && <Live today={today} />}
+        {tab === "datos" && <Datos logs={logs} data={data} C={C} onOpenTech={() => setTechOpen(true)} onBreathe={() => setBreathOpen(true)} />}
         {tab === "sleep" && <Sleep data={data} onBreathe={() => setBreathOpen(true)} />}
-        {tab === "config" && <Config data={data} hook={hook} auth={auth} />}
-        {tab === "tech" && <Technical data={data} />}
+        {tab === "config" && <Config data={data} hook={hook} auth={auth} logs={logs} onExportData={() => exportData(data, logs.logs)} />}
       </div>
 
-      <TabBar active={tab} onChange={setTab} />
+      <TabBar active={tab} onChange={setTab} safetyFlag={hasSafetyFlag} />
+
+      {/* Pantalla Técnico (completa, desde Inicio) */}
+      {techOpen && (
+        <div className="fixed inset-0 z-50 overflow-y-auto" style={{ background: C.bg }}>
+          <div className="max-w-md mx-auto px-4 py-6">
+            <div className="flex items-center justify-between mb-3">
+              <h2 style={{ color: C.text }} className="text-xl font-bold">Análisis técnico</h2>
+              <button onClick={() => setTechOpen(false)} style={{ background: C.card, border: `1px solid ${C.border}`, color: C.textMuted }} className="w-9 h-9 rounded-full">✕</button>
+            </div>
+            <Technical data={data} />
+          </div>
+        </div>
+      )}
 
       {showModal && (
         <DataSourceModal
@@ -93,29 +112,39 @@ function AppInner({ hook, auth, userProfile }) {
         />
       )}
 
-      {/* COACH: FAB + bottom-sheet, montado UNA SOLA VEZ (no se desmonta al cambiar tab). */}
+      {/* COACH: FAB + bottom-sheet, montado UNA SOLA VEZ */}
       <Coach />
 
-      {/* RESPIRACION GUIADA: overlay global, se abre desde cualquier tab. */}
+      {/* RESPIRACION GUIADA */}
       <BreathSession open={breathOpen} onClose={() => setBreathOpen(false)} today={today} />
     </div>
   );
 }
 
-// Root llama al hook UNA vez y envuelve todo en CoachProvider (A2).
+// Exporta métricas + logs a un JSON descargable (dataset para ML / respaldo).
+function exportData(data, logs) {
+  try {
+    const payload = { exportedAt: new Date().toISOString(), metrics: data, logs };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = "biopulse-datos.json"; a.click();
+    URL.revokeObjectURL(url);
+  } catch (e) { /* noop */ }
+}
+
+// Root llama al hook UNA vez y envuelve todo en CoachProvider.
 function Root() {
   const hook = useBiopulseData();
   const auth = useAuth();
-  // Mientras verifica el token, no renderizamos nada (evita parpadeo de onboarding).
   if (auth.status === "loading") {
     return <div style={{ background: C.bg, minHeight: "100vh" }} />;
   }
-  // El perfil del usuario autenticado (si lo hay) alimenta el Coach/contexto.
   const userProfile = auth.profile || null;
   const data = hook.customData || hook.demoData;
   const today = data[data.length - 1];
   return (
-    <CoachProvider today={today} userProfile={userProfile}>
+    <CoachProvider today={today} userProfile={userProfile} logs={logs.logs}>
       <AppInner hook={hook} auth={auth} userProfile={userProfile} />
     </CoachProvider>
   );

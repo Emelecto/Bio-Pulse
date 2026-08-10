@@ -307,3 +307,84 @@ export function forecastRisk(history) {
     trendUp: slope > 1.5,
   };
 }
+
+// ============================================================
+// REGISTRO: Readiness + Zona de esfuerzo objetivo + Correlación.
+// ============================================================
+
+// Readiness 0..100 combinando métricas del día (acotado).
+// Entradas: { recovery, hrv, hrvBaseline, riskScore, sleepScore, fatigue }
+export function computeReadiness(m) {
+  const recovery = clamp(+(m.recovery ?? 50), 0, 100);
+  const risk = clamp(+(m.riskScore ?? 0), 0, 100);
+  const sleep = clamp(+(m.sleepScore ?? 50), 0, 100);
+  const fatigue = clamp(+(m.fatigue ?? 50), 0, 100);
+  // HRV z-score contra el baseline del usuario (0..100)
+  const hrv = +m.hrv;
+  const base = +m.hrvBaseline || hrv || 40;
+  const hrvZ = clamp(50 + (hrv - base) * 3, 0, 100);
+  const readiness =
+    0.32 * recovery +
+    0.22 * hrvZ +
+    0.20 * (100 - risk) +
+    0.18 * sleep +
+    0.08 * (100 - fatigue);
+  return Math.round(clamp(readiness, 0, 100));
+}
+
+// Zona de esfuerzo objetivo (intensidad % y strain) derivada de readiness.
+// SIEMPRE acotada: nunca muy baja (>=30%) ni muy alta (<=90%) para evitar
+// sobreesfuerzo ni pérdida de forma.
+export function effortTarget(readiness) {
+  const r = clamp(readiness, 0, 100);
+  let lo, hi, label;
+  if (r >= 80) { lo = 75; hi = 90; label = "Alto pero seguro"; }
+  else if (r >= 60) { lo = 60; hi = 75; label = "Moderado-alto"; }
+  else if (r >= 45) { lo = 45; hi = 62; label = "Moderado"; }
+  else if (r >= 30) { lo = 35; hi = 50; label = "Suave"; }
+  else { lo = 25; hi = 40; label = "Recuperación"; }
+  // Clamp estricto de seguridad
+  lo = clamp(lo, 30, 80);
+  hi = clamp(hi, 45, 90);
+  const mid = Math.round((lo + hi) / 2);
+  return { lo, hi, mid, label, readiness: r };
+}
+
+// Agrupa logs por fecha (YYYY-MM-DD).
+export function logsByDay(logs) {
+  const map = {};
+  for (const l of logs || []) {
+    const d = new Date(l.ts).toISOString().slice(0, 10);
+    (map[d] = map[d] || []).push(l);
+  }
+  return map;
+}
+
+// Correlación exploratoria: para cada preset, compara métricas de días CON
+// log vs días SIN log. data = array de días {date, hrv, rhr, bioScore, sleepScore, riskScore, recovery}.
+// Devuelve lista de {id,label,countWith,countWithout,metrics:{hrv:{with,without,deltaPct},...}}
+export function correlate(logs, data) {
+  if (!logs || !logs.length || !data || data.length < 4) return [];
+  const presets = {};
+  for (const l of logs) {
+    (presets[l.preset] = presets[l.preset] || new Set()).add(new Date(l.ts).toISOString().slice(0, 10));
+  }
+  const metrics = ["hrv", "rhr", "bioScore", "sleepScore", "riskScore", "recovery"];
+  const out = [];
+  for (const id of Object.keys(presets)) {
+    const withSet = new Set([...presets[id]]);
+    const withRows = data.filter((d) => withSet.has(String(d.date).slice(0, 10)));
+    const withoutRows = data.filter((d) => !withSet.has(String(d.date).slice(0, 10)));
+    if (withRows.length < 2 || withoutRows.length < 2) continue;
+    const row = { id, label: id, countWith: withRows.length, countWithout: withoutRows.length, metrics: {} };
+    for (const m of metrics) {
+      const avg = (rows) => rows.reduce((s, r) => s + (+r[m] || 0), 0) / rows.length;
+      const w = avg(withRows), wo = avg(withoutRows);
+      const delta = wo ? ((w - wo) / wo) * 100 : 0;
+      row.metrics[m] = { with: Math.round(w * 10) / 10, without: Math.round(wo * 10) / 10, deltaPct: Math.round(delta) };
+    }
+    out.push(row);
+  }
+  return out;
+}
+

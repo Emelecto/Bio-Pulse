@@ -28,7 +28,7 @@ function PassField({ label, value, onChange, placeholder }) {
   );
 }
 
-export default function Config({ data, hook, auth }) {
+export default function Config({ data, hook, auth, logs, onExportData }) {
   const {
     customSourceLabel, showModal, setShowModal, activeTab, setActiveTab,
     handleCsvFile, csvHeaders, csvMapping, setCsvMapping, csvError, csvFileName, csvRowCount,
@@ -122,6 +122,9 @@ export default function Config({ data, hook, auth }) {
                 </div>
               </div>
               <button onClick={auth.logout} style={{ color: C.rose }} className="text-[12px]">Cerrar sesión</button>
+              {onExportData && (
+                <button onClick={onExportData} style={{ color: C.textMuted, marginTop: 6 }} className="text-[12px] block">Exportar mis datos (JSON)</button>
+              )}
             </div>
             {/* Resumen del perfil linked a la cuenta */}
             <div className="mt-3 rounded-xl px-3 py-2.5" style={{ background: C.bgSoft, border: `1px solid ${C.borderSoft}` }}>
