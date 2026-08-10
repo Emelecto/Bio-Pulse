@@ -5,7 +5,7 @@
 // como props desde AppInner, evitando instanciar useAuth dos veces.
 // ============================================================
 import React, { useState } from "react";
-import { User, Key, Upload, Database, Trash2, RefreshCw, AlertTriangle, Mail, CheckCircle2, LogIn, UserPlus, Sparkles, Pencil, Eye, EyeOff } from "lucide-react";
+import { User, Key, Upload, Database, Trash2, RefreshCw, AlertTriangle, Mail, CheckCircle2, LogIn, UserPlus, Sparkles, Pencil, Eye, EyeOff, Download, FileText } from "lucide-react";
 import { C } from "./ui.jsx";
 import { useTheme } from "../lib/theme.jsx";
 import Onboarding from "./Onboarding.jsx";
@@ -122,12 +122,6 @@ export default function Config({ data, hook, auth, logs, onExportData, onExportM
                 </div>
               </div>
               <button onClick={auth.logout} style={{ color: C.rose }} className="text-[12px]">Cerrar sesión</button>
-              {onExportData && (
-                <button onClick={onExportData} style={{ color: C.textMuted, marginTop: 6 }} className="text-[12px] block">Exportar mis datos (JSON)</button>
-              )}
-              {onExportMedical && (
-                <button onClick={onExportMedical} style={{ color: C.teal, marginTop: 6 }} className="text-[12px] block font-semibold">Exportar informe para médico (CSV)</button>
-              )}
             </div>
             {/* Resumen del perfil linked a la cuenta */}
             <div className="mt-3 rounded-xl px-3 py-2.5" style={{ background: C.bgSoft, border: `1px solid ${C.borderSoft}` }}>
@@ -290,6 +284,27 @@ export default function Config({ data, hook, auth, logs, onExportData, onExportM
         <input type="range" min="10" max="80" value={riskThreshold} onChange={(e) => setRiskThreshold(Number(e.target.value))}
           className="w-full accent-[#4FD8C4]" />
         <p style={{ color: C.textFaint }} className="text-[11px] mt-1">El coach marca alerta cuando el índice supera este valor.</p>
+      </div>
+
+      {/* EXPORTAR DATOS */}
+      <div style={{ background: C.card, border: `1px solid ${C.border}` }} className="glass rounded-3xl p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <Download size={16} style={{ color: C.teal }} />
+          <span style={{ color: C.text }} className="text-sm font-semibold">Exportar datos</span>
+        </div>
+        <div className="flex flex-col gap-2">
+          {onExportData && (
+            <button onClick={onExportData} style={{ background: C.bgSoft, border: `1px solid ${C.border}`, color: C.text }} className="w-full text-[12.5px] font-medium py-2.5 rounded-xl flex items-center justify-center gap-1.5">
+              <Database size={14} /> Exportar mis datos (JSON)
+            </button>
+          )}
+          {onExportMedical && (
+            <button onClick={onExportMedical} style={{ background: `${C.teal}14`, border: `1px solid ${C.teal}33`, color: C.teal }} className="w-full text-[12.5px] font-semibold py-2.5 rounded-xl flex items-center justify-center gap-1.5">
+              <FileText size={14} /> Exportar informe para médico (CSV)
+            </button>
+          )}
+          <p style={{ color: C.textFaint }} className="text-[11px] mt-0.5">El JSON alimenta el modelo de ML; el CSV es un resumen legible para tu médico.</p>
+        </div>
       </div>
 
       {/* ORGANIZACIÓN */}
