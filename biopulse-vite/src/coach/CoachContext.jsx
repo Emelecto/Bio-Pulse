@@ -24,8 +24,9 @@ export const useCoach = () => {
 
 // Tab -> contexto para el system prompt del backend (D2).
 export const COACH_TAB_CTX = {
-  dash: "La pantalla actual es Inicio (Dashboard): el usuario ve su BioScore, Score de riesgo y métricas del día. Habla de su estado general y plan de hoy.",
+  inicio: "La pantalla actual es Inicio (Dashboard): el usuario ve su BioScore, Score de riesgo y métricas del día. Habla de su estado general y plan de hoy.",
   live: "La pantalla actual es Live (en vivo): el usuario ve frecuencia cardíaca, strain y respiración en tiempo real. Comenta la intensidad y cuándo ajustar.",
+  datos: "La pantalla actual es Datos: el usuario registra hábitos/sustancias, ve su zona de esfuerzo, análisis de correlación y glosario.",
   sleep: "La pantalla actual es Sueño: el usuario ve su Sleep Score, horas, eficiencia y despertares. Ayúdalo a interpretar y mejorar su descanso.",
   tech: "La pantalla actual es Técnico: el usuario ve el modelo heurístico del índice (z-scores, ApEn, fatiga, infección). Explica el modelo en lenguaje claro.",
   config: "La pantalla actual es Ajustes: el usuario configura fuente de datos (Whoop/Apple/Garmin/CSV) y tema. Ayúdalo con conexión de dispositivos y privacidad.",
@@ -33,8 +34,9 @@ export const COACH_TAB_CTX = {
 
 // Chips contextuales por pantalla (D2): atajos de preguntas coherentes.
 export const COACH_CHIPS = {
-  dash: ["Interpreta mis métricas de hoy", "¿Qué significa mi riesgo?", "Dame un plan de hoy"],
+  inicio: ["Interpreta mis métricas de hoy", "¿Qué significa mi riesgo?", "Dame un plan de hoy"],
   live: ["¿Qué dice mi FC ahora?", "¿Subo o bajo la intensidad?", "¿Cuánto falta para recuperar?"],
+  datos: ["¿Cómo afecta el alcohol?", "Explícame mi zona de esfuerzo", "¿Qué me baja el HRV?"],
   sleep: ["Explica mi sueño de anoche", "¿Cómo mejoro el sueño profundo?", "¿Por qué me desperté?"],
   tech: ["Explica el modelo en simple", "¿Por qué no es diagnóstico?", "¿Qué es ApEn en mi HRV?"],
   config: ["¿Cómo conecto mi Whoop?", "¿Es seguro mis datos?", "¿Cómo subo un CSV?"],
@@ -54,7 +56,7 @@ export function CoachProvider({ children, today, logs = [] }) {
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState(null);
   const [aiConnected, setAiConnected] = useState(false);
-  const [tab, setTabState] = useState("dash");
+  const [tab, setTabState] = useState("inicio");
   const [logsState, setLogsState] = useState(logs || []);
   useEffect(() => { if (logs && logs.length) setLogsState(logs); }, [logs]);
   const todayRef = useRef(today);
