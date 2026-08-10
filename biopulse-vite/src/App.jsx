@@ -137,6 +137,7 @@ function exportData(data, logs) {
 function Root() {
   const hook = useBiopulseData();
   const auth = useAuth();
+  const logs = useLogs();
   if (auth.status === "loading") {
     return <div style={{ background: C.bg, minHeight: "100vh" }} />;
   }
