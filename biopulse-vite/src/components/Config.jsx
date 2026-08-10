@@ -28,7 +28,7 @@ function PassField({ label, value, onChange, placeholder }) {
   );
 }
 
-export default function Config({ data, hook, auth, logs, onExportData }) {
+export default function Config({ data, hook, auth, logs, onExportData, onExportMedical }) {
   const {
     customSourceLabel, showModal, setShowModal, activeTab, setActiveTab,
     handleCsvFile, csvHeaders, csvMapping, setCsvMapping, csvError, csvFileName, csvRowCount,
@@ -124,6 +124,9 @@ export default function Config({ data, hook, auth, logs, onExportData }) {
               <button onClick={auth.logout} style={{ color: C.rose }} className="text-[12px]">Cerrar sesión</button>
               {onExportData && (
                 <button onClick={onExportData} style={{ color: C.textMuted, marginTop: 6 }} className="text-[12px] block">Exportar mis datos (JSON)</button>
+              )}
+              {onExportMedical && (
+                <button onClick={onExportMedical} style={{ color: C.teal, marginTop: 6 }} className="text-[12px] block font-semibold">Exportar informe para médico (CSV)</button>
               )}
             </div>
             {/* Resumen del perfil linked a la cuenta */}

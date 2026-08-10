@@ -388,3 +388,71 @@ export function correlate(logs, data) {
   return out;
 }
 
+// ---- INSIGHTS AUTOMÁTICOS (punto 2) ----
+const INSIGHT_METRIC_LABEL = {
+  hrv: "HRV", rhr: "RHR", bioScore: "BioScore", sleepScore: "Sueño", riskScore: "Riesgo", recovery: "Recuperación",
+};
+const INSIGHT_HIGHER_BETTER = { hrv: true, rhr: false, bioScore: true, sleepScore: true, riskScore: false, recovery: true };
+
+export function topInsights(corr, { minDelta = 5, limit = 2 } = {}) {
+  if (!corr || !corr.length) return [];
+  const out = [];
+  for (const row of corr) {
+    for (const m of Object.keys(INSIGHT_HIGHER_BETTER)) {
+      const d = row.metrics[m];
+      if (!d || d.deltaPct == null || Math.abs(d.deltaPct) < minDelta) continue;
+      if (row.countWith < 2 || row.countWithout < 2) continue;
+      const better = INSIGHT_HIGHER_BETTER[m];
+      const improved = better ? d.deltaPct > 0 : d.deltaPct < 0;
+      const verb = d.deltaPct > 0 ? "subió" : "bajó";
+      out.push({
+        id: row.id,
+        metric: m,
+        label: INSIGHT_METRIC_LABEL[m],
+        deltaPct: d.deltaPct,
+        improved,
+        text: `${row.id} → ${INSIGHT_METRIC_LABEL[m]} ${verb} ${Math.abs(d.deltaPct)}%`,
+      });
+    }
+  }
+  out.sort((a, b) => Math.abs(b.deltaPct) - Math.abs(a.deltaPct));
+  return out.slice(0, limit);
+}
+
+// ---- STREAKS DE HÁBITOS SALUDABLES (punto 5) ----
+export function computeStreaks(logs, { positiveIds = new Set(), avoidIds = new Set() } = {}) {
+  if (!logs || !logs.length) return [];
+  const byDay = logsByDay(logs);
+  const dayKeys = Object.keys(byDay).sort();
+  const todayKey = new Date().toISOString().slice(0, 10);
+  if (dayKeys[dayKeys.length - 1] !== todayKey) dayKeys.push(todayKey);
+
+  const results = {};
+  const touch = (key) => (results[key] = results[key] || { id: key, count: 0, active: true });
+
+  for (const day of dayKeys) {
+    const dayLogs = byDay[day] || [];
+    const present = new Set(dayLogs.map((l) => l.preset));
+    for (const pid of positiveIds) {
+      const r = touch("pos:" + pid);
+      if (!present.has(pid)) r.active = false;
+    }
+    for (const aid of avoidIds) {
+      const r = touch("avoid:" + aid);
+      if (present.has(aid)) r.active = false;
+    }
+  }
+  return Object.values(results)
+    .filter((r) => r.count >= 2)
+    .map((r) => {
+      const kind = r.id.startsWith("pos:") ? "pos" : "avoid";
+      const presetId = r.id.slice(4);
+      return { presetId, kind, count: r.count, active: r.active };
+    });
+}
+
+import { LOG_PRESET_BY_ID } from "./logPresets.js";
+export function presetLabel(id) {
+  return LOG_PRESET_BY_ID[id]?.label || id;
+}
+

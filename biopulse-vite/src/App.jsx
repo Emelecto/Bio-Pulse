@@ -79,11 +79,11 @@ function AppInner({ hook, auth, userProfile }) {
         </div>
 
         {/* TAB CONTENT */}
-        {tab === "inicio" && <Inicio data={data} today={today} riskThreshold={riskThreshold} userProfile={userProfile} onOpenTech={() => setTechOpen(true)} onOpenDatos={() => setTab("datos")} onBreathe={() => setBreathOpen(true)} />}
+        {tab === "inicio" && <Inicio data={data} today={today} riskThreshold={riskThreshold} userProfile={userProfile} logs={logs} onOpenTech={() => setTechOpen(true)} onOpenDatos={() => setTab("datos")} onBreathe={() => setBreathOpen(true)} />}
         {tab === "live" && <Live today={today} />}
         {tab === "datos" && <Datos logs={logs} data={data} C={C} onOpenTech={() => setTechOpen(true)} onBreathe={() => setBreathOpen(true)} />}
         {tab === "sleep" && <Sleep data={data} onBreathe={() => setBreathOpen(true)} />}
-        {tab === "config" && <Config data={data} hook={hook} auth={auth} logs={logs} onExportData={() => exportData(data, logs.logs)} />}
+        {tab === "config" && <Config data={data} hook={hook} auth={auth} logs={logs} onExportData={() => exportData(data, logs.logs)} onExportMedical={() => exportMedicalReport(data, logs.logs)} />}
       </div>
 
       <TabBar active={tab} onChange={setTab} safetyFlag={hasSafetyFlag} />
@@ -129,6 +129,31 @@ function exportData(data, logs) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url; a.download = "biopulse-datos.json"; a.click();
+    URL.revokeObjectURL(url);
+  } catch (e) { /* noop */ }
+}
+
+// Punto 6: informe legible para médico (CSV humano, no JSON de ML).
+function exportMedicalReport(data, logs) {
+  try {
+    const byDate = {};
+    for (const l of logs || []) {
+      const d = (l.ts || "").slice(0, 10);
+      (byDate[d] = byDate[d] || []).push(l);
+    }
+    const header = ["fecha", "hrv", "rhr", "bioScore", "sleepScore", "riskScore", "recuperacion", "habitos_registrados"];
+    const rows = (data || []).map((d) => {
+      const dk = String(d.date).slice(0, 10);
+      const hs = (byDate[dk] || []).map((l) => `${l.label || l.preset}${l.amount ? " (" + l.amount + (l.unit || "") + ")" : ""}`).join("; ");
+      return [dk, d.hrv, d.rhr, d.bioScore, d.sleepScore, d.riskScore, d.recovery, hs];
+    });
+    const csv = [header, ...rows]
+      .map((r) => r.map((c) => `"${String(c ?? "").replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = "biopulse-informe-medico.csv"; a.click();
     URL.revokeObjectURL(url);
   } catch (e) { /* noop */ }
 }

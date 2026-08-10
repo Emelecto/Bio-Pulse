@@ -104,3 +104,14 @@ export const SAFETY_FLAGS = [
     msg: "Cafeína pre-entreno tras mala noche: puede profundizar el déficit de sueño. Modera.",
   },
 ];
+
+// Presets "saludables" (suman racha positiva) y "a evitar" (su AUSENCIA suma racha).
+// Usado por computeStreaks para gamificación positiva (punto 5).
+export const POSITIVE_PRESETS = new Set([
+  "proteina", "creatina", "electrolitos", "magnesio", "omega3", "vitd", "zinc",
+  "cafeina_pe", "betaalanina", "bcaa", "multi",
+  "fuerza", "cardio", "hiit", "yoga", "meditacion", "sauna", "banofrio", "hidratacion", "siesta",
+]);
+export const AVOID_PRESETS = new Set([
+  "alcohol", "cigarrillo", "vape", "cannabis", "energetica", "azucar",
+]);
