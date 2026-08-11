@@ -31,3 +31,7 @@ Thumbs.db
 .DS_Store
 
 open-wearables/
+
+# CSVs de datos personales (no commitear)
+converted-health-data.csv
+*.csv

@@ -39,7 +39,7 @@ function AppInner({ hook, auth, userProfile }) {
     riskThreshold, setRiskThreshold, clearAllData, showModal, setShowModal,
     activeTab, setActiveTab, connections, setConnections, syncStatus, setSyncStatus,
     handleCsvFile, csvHeaders, csvMapping, setCsvMapping, csvError, csvFileName,
-    csvRowCount, confirmCsv, clearCustom, FIELD_DEFS,
+    csvRowCount, csvDiag, confirmCsv, clearCustom, FIELD_DEFS,
   } = hook;
 
   const data = customData || demoData;
@@ -179,7 +179,36 @@ function Root() {
 export default function App() {
   return (
     <ThemeProvider>
-      <Root />
+      <ErrorBoundary>
+        <Root />
+      </ErrorBoundary>
     </ThemeProvider>
   );
+}
+
+// Límite de error: evita que un fallo de render deje TODA la app en negro.
+// Muestra un mensaje recuperable en vez de una pantalla vacía.
+class ErrorBoundary extends React.Component {
+  constructor(props) { super(props); this.state = { error: null }; }
+  static getDerivedStateFromError(error) { return { error }; }
+  componentDidCatch(error, info) { console.error("BioPulse crash:", error, info); }
+  render() {
+    if (this.state.error) {
+      return (
+        <div style={{ background: C.bg, color: C.text, minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, padding: 24 }}>
+          <div style={{ fontSize: 22, fontWeight: 700 }}>Algo salió mal</div>
+          <div style={{ color: C.textMuted, fontSize: 13, maxWidth: 360, textAlign: "center" }}>
+            Ocurrió un error inesperado. Recarga la página (F5). Si persiste, avisa al equipo de BioPulse.
+          </div>
+          <button onClick={() => location.reload()} style={{ background: C.teal, color: C.bg, border: "none", borderRadius: 12, padding: "10px 18px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+            Recargar
+          </button>
+          {this.state.error?.message && (
+            <pre style={{ color: C.textFaint, fontSize: 11, maxWidth: 420, overflow: "auto", textAlign: "left" }}>{this.state.error.message}</pre>
+          )}
+        </div>
+      );
+    }
+    return this.props.children;
+  }
 }
