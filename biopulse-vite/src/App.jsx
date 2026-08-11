@@ -105,7 +105,7 @@ function AppInner({ hook, auth, userProfile }) {
         <DataSourceModal
           onClose={() => setShowModal(false)} activeTab={activeTab} setActiveTab={setActiveTab}
           connections={connections} setConnections={setConnections} syncStatus={syncStatus} setSyncStatus={setSyncStatus}
-          onCsvFile={handleCsvFile} csvHeaders={csvHeaders} csvMapping={csvMapping} setCsvMapping={setCsvMapping} csvError={csvError} csvFileName={csvFileName} csvRowCount={csvRowCount}
+          onCsvFile={handleCsvFile} csvHeaders={csvHeaders} csvMapping={csvMapping} setCsvMapping={setCsvMapping} csvError={csvError} csvFileName={csvFileName} csvRowCount={csvRowCount} csvDiag={csvDiag}
           onConfirmCsv={confirmCsv} onUseDemo={() => { setShowModal(false); }} onClearCustom={clearCustom}
           customSourceLabel={customSourceLabel} riskThreshold={riskThreshold} setRiskThreshold={setRiskThreshold}
           clearAllData={clearAllData} FIELD_DEFS={FIELD_DEFS}

@@ -11,7 +11,7 @@ import { C } from "./ui.jsx";
 export default function DataSourceModal({
   onClose, activeTab, setActiveTab,
   connections, setConnections, syncStatus, setSyncStatus,
-  onCsvFile, csvHeaders, csvMapping, setCsvMapping, csvError, csvFileName, csvRowCount,
+  onCsvFile, csvHeaders, csvMapping, setCsvMapping, csvError, csvFileName, csvRowCount, csvDiag,
   onConfirmCsv, onUseDemo, onClearCustom, customSourceLabel,
   riskThreshold, setRiskThreshold, clearAllData, FIELD_DEFS,
 }) {
@@ -123,7 +123,7 @@ export default function DataSourceModal({
           {activeTab === "csv" && (
             <div className="flex flex-col gap-4">
               <p style={{ color: C.textFaint }} className="text-[12px] leading-relaxed">
-                Sube un CSV exportado de tu wearable. Detectamos las columnas automáticamente; puedes corregirlas abajo.
+                Sube un CSV exportado de tu wearable o salud (Apple Health, Google Fit, Whoop, Oura, Garmin o cualquier export). Lo detectamos y convertimos automáticamente; puedes corregir el mapeo abajo si hace falta.
               </p>
               <label style={{ background: C.card, border: `1.5px dashed ${C.border}` }} className="glass rounded-2xl p-6 flex flex-col items-center gap-2 cursor-pointer">
                 <Upload size={20} style={{ color: C.teal }} />
@@ -132,9 +132,40 @@ export default function DataSourceModal({
                 <input type="file" accept=".csv" className="hidden" onChange={onCsvFile} />
               </label>
               {csvError && <div style={{ background: `${C.rose}14`, border: `1px solid ${C.rose}33`, color: C.rose }} className="rounded-lg p-2.5 text-[11px]">{csvError}</div>}
+
+              {/* RESUMEN DE DIAGNÓSTICO AUTOMÁTICO */}
+              {csvDiag && (
+                <div style={{ background: csvDiag.error ? `${C.rose}14` : `${C.teal}12`, border: `1px solid ${csvDiag.error ? C.rose + "33" : C.teal + "33"}` }} className="rounded-xl p-3.5">
+                  <div className="flex items-center gap-1.5 mb-2">
+                    {csvDiag.error ? <AlertTriangle size={13} style={{ color: C.rose }} /> : <Check size={13} style={{ color: C.teal }} />}
+                    <span style={{ color: csvDiag.error ? C.rose : C.teal }} className="text-[12px] font-semibold">
+                      {csvDiag.format === "tidy" ? "Export de salud detectado" : csvDiag.format === "wide" ? "CSV por día detectado" : "Formato no reconocido"}
+                    </span>
+                  </div>
+                  {!csvDiag.error && (
+                    <div className="flex flex-col gap-1.5">
+                      <span style={{ color: C.textMuted }} className="text-[11px]">{csvDiag.days} días convertidos con HRV y RHR válidos.</span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {[["HRV", csvDiag.hasHrv], ["RHR", csvDiag.hasRhr], ["Pasos", csvDiag.hasSteps], ["Sueño", csvDiag.hasSleep]].map(([label, ok]) => (
+                          <span key={label} style={{ background: ok ? `${C.teal}1A` : `${C.amber}1A`, color: ok ? C.teal : C.amber, border: `1px solid ${ok ? C.teal + "44" : C.amber + "44"}` }} className="text-[10.5px] px-2 py-0.5 rounded-full font-medium">
+                            {ok ? "✓" : "•"} {label}
+                          </span>
+                        ))}
+                      </div>
+                      {!csvDiag.hasSleep && (
+                        <span style={{ color: C.textFaint }} className="text-[10.5px]">El sueño no venía en este archivo → se usa un valor neutro (no se inventa).</span>
+                      )}
+                      {csvDiag.unmappedTypes?.length > 0 && (
+                        <span style={{ color: C.textFaint }} className="text-[10.5px]">No usados: {csvDiag.unmappedTypes.slice(0, 4).join(", ")}{csvDiag.unmappedTypes.length > 4 ? "…" : ""}</span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
               {csvHeaders.length > 0 && (
                 <div className="flex flex-col gap-2">
-                  <span style={{ color: C.textFaint }} className="text-[11px] uppercase tracking-wider font-medium">Mapeo de columnas</span>
+                  <span style={{ color: C.textFaint }} className="text-[11px] uppercase tracking-wider font-medium">Mapeo de columnas (opcional)</span>
                   {FIELD_DEFS.map((f) => (
                     <div key={f.key} className="flex items-center gap-2">
                       <span style={{ color: f.required ? C.text : C.textMuted }} className="text-[11px] w-32 shrink-0">{f.label}{f.required && <span style={{ color: C.rose }}> *</span>}</span>
@@ -146,10 +177,10 @@ export default function DataSourceModal({
                       </select>
                     </div>
                   ))}
-                  <button onClick={onConfirmCsv} disabled={!csvMapping.hrv || !csvMapping.rhr}
-                    style={{ background: csvMapping.hrv && csvMapping.rhr ? C.teal : C.borderSoft, color: csvMapping.hrv && csvMapping.rhr ? C.bg : C.textFaint }}
+                  <button onClick={onConfirmCsv} disabled={!(csvDiag?.hasHrv && csvDiag?.hasRhr) && !(csvMapping.hrv && csvMapping.rhr)}
+                    style={{ background: (csvDiag?.hasHrv && csvDiag?.hasRhr) || (csvMapping.hrv && csvMapping.rhr) ? C.teal : C.borderSoft, color: (csvDiag?.hasHrv && csvDiag?.hasRhr) || (csvMapping.hrv && csvMapping.rhr) ? C.bg : C.textFaint }}
                     className="mt-2 text-xs font-semibold py-2.5 rounded-xl disabled:cursor-not-allowed">Analizar estos datos</button>
-                  <p style={{ color: C.textFaint }} className="text-[10.5px]">* HRV y RHR son obligatorios. Los demás campos usan un valor neutro si no se mapean.</p>
+                  <p style={{ color: C.textFaint }} className="text-[10.5px]">* HRV y RHR son obligatorios. Con un export de salud se detectan solos; si no, mápealos arriba.</p>
                 </div>
               )}
             </div>
