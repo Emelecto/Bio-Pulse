@@ -3,7 +3,7 @@
 // latidos y métricas interpretables en vivo.
 // ============================================================
 import React, { useEffect, useRef, useState } from "react";
-import { Heart, Activity, Wind, BatteryMedium } from "lucide-react";
+import { Heart, Activity, Wind, BatteryMedium, Zap, Sun, TrendingUp } from "lucide-react";
 import { C, Sparkline, buildSmoothPath } from "./ui.jsx";
 
 // Genera una onda tipo ECG para un BPM dado.
@@ -17,8 +17,11 @@ function ecgWave(bpm, points = 120) {
 }
 
 export default function Live({ today }) {
-  const [bpm, setBpm] = useState(today.rhr || 60);
-  const [wave, setWave] = useState(() => ecgWave(today.rhr || 60));
+  // BPM base en vivo = HeartRate del día (mediana), NO RHR. Son señales distintas:
+  // HeartRate = frecuencia instantánea (columna 10 del export); RHR = mínimo en reposo.
+  const liveHr = today.liveHr || today.heartRate?.[Math.floor((today.heartRate.length || 1) / 2)] || today.rhr || 60;
+  const [bpm, setBpm] = useState(liveHr);
+  const [wave, setWave] = useState(() => ecgWave(liveHr));
   const [hrv, setHrv] = useState(today.hrv);
   const [resp, setResp] = useState(today.resp);
   const tick = useRef(0);
@@ -26,8 +29,8 @@ export default function Live({ today }) {
   useEffect(() => {
     const id = setInterval(() => {
       tick.current++;
-      // varía el BPM alrededor de RHR como si fuera en vivo
-      const base = today.rhr || 60;
+      // varía el BPM alrededor del HeartRate del día como si fuera en vivo
+      const base = liveHr;
       const v = Math.round(base + Math.sin(tick.current / 3) * 4 + (Math.random() - 0.5) * 2);
       setBpm(v);
       setWave(ecgWave(v));
@@ -35,7 +38,7 @@ export default function Live({ today }) {
       setResp(+(today.resp + Math.sin(tick.current / 7) * 0.6).toFixed(1));
     }, 900);
     return () => clearInterval(id);
-  }, [today.rhr, today.hrv, today.resp]);
+  }, [liveHr, today.hrv, today.resp]);
 
   const w = 600, h = 120;
   const wMin = Math.min(...wave), wMax = Math.max(...wave);
@@ -51,7 +54,7 @@ export default function Live({ today }) {
       <div style={{ background: `linear-gradient(160deg, ${C.card}, ${C.bgSoft})`, border: `1px solid ${C.border}` }} className="rounded-3xl p-5 relative overflow-hidden">
         <div className="flex items-center gap-2 mb-2">
           <Heart size={16} style={{ color: C.rose }} className="animate-pulse" />
-          <span style={{ color: C.textMuted }} className="text-[11px] uppercase tracking-wider font-medium">Frecuencia cardíaca en vivo</span>
+          <span style={{ color: C.textMuted }} className="text-[11px] uppercase tracking-wider font-medium">Frecuencia cardíaca en vivo (Heart Rate)</span>
           <span style={{ color: C.teal, background: `${C.teal}14`, border: `1px solid ${C.teal}40` }} className="text-[9px] font-semibold px-2 py-0.5 rounded-full ml-auto">SIMULADO</span>
         </div>
         <div className="flex items-end gap-2">
@@ -66,14 +69,42 @@ export default function Live({ today }) {
       <div className="grid grid-cols-2 gap-3">
         <LiveCard icon={Heart} label="HRV en vivo" value={hrv} unit="ms" color={C.teal} spark={wave.map((v) => v * 20 + 50)} />
         <LiveCard icon={Wind} label="Frec. resp." value={resp} unit="rpm" color={C.purple} spark={Array.from({ length: 12 }, (_, i) => 50 + Math.sin(i / 2) * 15)} />
-        <LiveCard icon={Activity} label="RHR base" value={today.rhr} unit="bpm" color={C.amber} spark={Array.from({ length: 12 }, (_, i) => 50 + Math.sin(i / 3) * 10)} />
+        <LiveCard icon={Activity} label="RHR (reposo)" value={today.rhr} unit="bpm" color={C.amber} spark={Array.from({ length: 12 }, (_, i) => 50 + Math.sin(i / 3) * 10)} />
         <LiveCard icon={BatteryMedium} label="Recuperación" value={today.recovery} unit="%" color={C.teal} spark={Array.from({ length: 12 }, (_, i) => 50 + Math.sin(i / 4) * 20)} />
+      </div>
+
+      {/* SECCIÓN ACTIVIDAD (D): métricas reales del export Apple Watch */}
+      <div style={{ background: C.bgSoft, border: `1px solid ${C.borderSoft}` }} className="rounded-2xl p-4 flex flex-col gap-3">
+        <span style={{ color: C.textMuted }} className="text-[11px] uppercase tracking-wider font-medium">Hoy en tus sensores</span>
+        <div className="grid grid-cols-2 gap-2.5">
+          <ActivityStat icon={Activity} label="Pasos" value={today.steps} unit="" color={C.teal} />
+          <ActivityStat icon={Zap} label="Energía activa" value={today.activeEnergy} unit="kcal" color={C.amber} />
+          <ActivityStat icon={BatteryMedium} label="Ejercicio" value={today.exerciseTime} unit="min" color={C.purple} />
+          <ActivityStat icon={Sun} label="Luz solar" value={today.timeInDaylight} unit="min" color={C.teal} />
+          <ActivityStat icon={TrendingUp} label="Pisos" value={today.flights} unit="" color={C.rose} />
+          <ActivityStat icon={Heart} label="Heart Rate (día)" value={liveHr} unit="bpm" color={C.rose} />
+        </div>
       </div>
 
       <div style={{ background: C.bgSoft, border: `1px solid ${C.borderSoft}` }} className="rounded-2xl p-4">
         <p style={{ color: C.textFaint }} className="text-[12px] leading-relaxed">
-          Vista en vivo simulada a partir de tus métricas de hoy (RHR {today.rhr} bpm, HRV {today.hrv} ms). Al conectar un wearable real vía el backend, estos valores se actualizan con datos de sensores en tiempo real.
+          El BPM grande es tu <b>Heart Rate</b> del día (frecuencia instantánea, col. 10 del export) animado en vivo; el HRV es real de hoy. El <b>RHR</b> de abajo es tu frecuencia en reposo (distinto de Heart Rate). Al conectar un wearable real vía el backend, estos valores se actualizan con sensores en tiempo real.
         </p>
+      </div>
+    </div>
+  );
+}
+
+function ActivityStat({ icon: Icon, label, value, unit, color }) {
+  return (
+    <div className="flex items-center gap-2">
+      <div style={{ background: `${color}1A`, color }} className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0"><Icon size={13} /></div>
+      <div className="min-w-0">
+        <div className="flex items-baseline gap-1">
+          <span style={{ color: C.text, fontFamily: "'IBM Plex Mono', monospace" }} className="text-sm font-semibold tabular-nums">{value}</span>
+          <span style={{ color: C.textFaint }} className="text-[10px]">{unit}</span>
+        </div>
+        <span style={{ color: C.textMuted }} className="text-[10.5px] leading-tight block truncate">{label}</span>
       </div>
     </div>
   );

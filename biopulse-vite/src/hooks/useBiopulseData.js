@@ -16,6 +16,10 @@ const METRIC_PATTERNS = {
   rhr: ["restingheartrate", "resting heart rate", "resting hr", "restinghr", "rhr", "frecuencia cardiaca en reposo", "frecuencia cardíaca en reposo", "resting"],
   heartRate: ["heartrate", "heart rate", "hr ", "pulsaciones", "frecuencia cardiaca", "frecuencia cardíaca"],
   steps: ["stepcount", "step count", "steps", "pasos"],
+  activeEnergy: ["activeenergyburned", "active energy", "active energy burned", "energia activa", "energía activa", "calorias activas"],
+  exerciseTime: ["appleexercisetime", "exercise time", "exercise", "tiempo de ejercicio", "ejercicio"],
+  timeInDaylight: ["timeindaylight", "daylight", "luz solar", "tiempo a la luz", "tiempo de luz"],
+  flights: ["flightsclimbed", "flights climbed", "flights", "pisos", "escaleras subidas"],
   sleepHours: ["sleepanalysis", "sleeanalysis", "total sleeptime", "total sleep time", "sleepduration", "sleep duration", "sleephours", "sleep hours", "sleep", "horas de sueno", "horas de sueño", "sueno", "sueño"],
   sleepEff: ["sleepefficiency", "sleep efficiency", "eficiencia de sueno", "eficiencia de sueño"],
   recovery: ["recovery", "recovery score", "recovery score", "recuperacion"],
@@ -28,10 +32,11 @@ const METRIC_PATTERNS = {
 const AGG = {
   hrv: "mean", rhr: "mean", heartRate: "mean", recovery: "mean", resp: "mean",
   skinTemp: "mean", sleepEff: "mean", sleepPerf: "mean", dayStrain: "mean",
-  steps: "sum", sleepHours: "sum", wakeUps: "sum",
+  steps: "sum", activeEnergy: "sum", exerciseTime: "sum", timeInDaylight: "sum", flights: "sum",
+  sleepHours: "sum", wakeUps: "sum",
 };
 
-const DEFAULTS = { recovery: 65, resp: 15, skinTemp: 0, sleepEff: 85, sleepPerf: 85, sleepHours: 7, dayStrain: 10, steps: 6000, wakeUps: 1 };
+const DEFAULTS = { recovery: 65, resp: 15, skinTemp: 0, sleepEff: 85, sleepPerf: 85, sleepHours: 7, dayStrain: 10, steps: 6000, wakeUps: 1, activeEnergy: 350, exerciseTime: 20, timeInDaylight: 30, flights: 8 };
 
 const norm = (s) =>
   String(s == null ? "" : s)
@@ -125,8 +130,9 @@ function buildRawFromTidy(rows) {
     }
   }
 
-  // Agrupa por día y por métrica.
-  const byDay = {}; // dayKey -> { metric -> [values] }
+  // Agrupa por día y por métrica. Para heartRate/rhr guarda {v, t} (timestamp)
+  // para poder deducir la ventana de sueño por timing real.
+  const byDay = {}; // dayKey -> { metric -> [values] | hrSeries: [{v,t}] }
   for (const r of rows) {
     const dk = dayKey(r[dateCol]);
     if (!dk) continue;
@@ -136,7 +142,13 @@ function buildRawFromTidy(rows) {
     const v = toNum(r[valueCol]);
     if (Number.isNaN(v)) continue;
     (byDay[dk] = byDay[dk] || {});
-    (byDay[dk][m] = byDay[dk][m] || []).push(v);
+    // heartRate y rhr se guardan como serie temporal para la ventana de sueño.
+    if (m === "heartRate" || m === "rhr") {
+      (byDay[dk].hrSeries = byDay[dk].hrSeries || []).push({ v, t: parseDate(r[dateCol] && r[dateCol].includes(" ") ? r[dateCol] : dk + "T00:00:00") });
+      (byDay[dk][m] = byDay[dk][m] || []).push(v);
+    } else {
+      (byDay[dk][m] = byDay[dk][m] || []).push(v);
+    }
   }
 
   const days = Object.keys(byDay).sort().map((dk) => {
@@ -148,18 +160,34 @@ function buildRawFromTidy(rows) {
     if (Number.isNaN(rhr) && agg.heartRate) rhr = Math.min(...agg.heartRate.filter(Number.isFinite));
     const sleepEff = get("sleepEff");
     const sleepHours = get("sleepHours");
+    // dayStrain desde carga real (energía activa + ejercicio), no default ciego.
+    const aE = get("activeEnergy");
+    const exT = get("exerciseTime");
+    let dayStrain = Number.isNaN(aE) ? DEFAULTS.dayStrain : clamp(aE / 90, 2, 21);
+    if (!Number.isNaN(exT)) dayStrain = clamp(dayStrain + exT / 12, 2, 21);
+    // Mediana del día de HeartRate para la vista Live (en VIVO, no RHR).
+    const liveHr = agg.heartRate && agg.heartRate.length
+      ? [...agg.heartRate].sort((a, b) => a - b)[Math.floor(agg.heartRate.length / 2)]
+      : (Number.isNaN(rhr) ? 60 : rhr);
     return {
       date: new Date(dk + "T00:00:00"),
       hrv: Number.isNaN(hrv) ? NaN : hrv,
       rhr: Number.isNaN(rhr) ? NaN : rhr,
+      heartRate: agg.heartRate ? [...agg.heartRate] : [],
+      liveHr: Number.isFinite(liveHr) ? liveHr : 60,
+      hrSeries: agg.hrSeries || [],
       recovery: Number.isNaN(get("recovery")) ? DEFAULTS.recovery : get("recovery"),
-      dayStrain: Number.isNaN(get("dayStrain")) ? DEFAULTS.dayStrain : get("dayStrain"),
+      dayStrain: +dayStrain.toFixed(1),
       sleepHours: Number.isNaN(sleepHours) ? DEFAULTS.sleepHours : sleepHours,
       sleepEff: Number.isNaN(sleepEff) ? DEFAULTS.sleepEff : sleepEff,
       sleepPerf: Number.isNaN(sleepEff) ? DEFAULTS.sleepPerf : sleepEff,
       resp: Number.isNaN(get("resp")) ? DEFAULTS.resp : get("resp"),
       skinTemp: Number.isNaN(get("skinTemp")) ? DEFAULTS.skinTemp : get("skinTemp"),
       steps: Number.isNaN(get("steps")) ? DEFAULTS.steps : Math.round(get("steps")),
+      activeEnergy: Number.isNaN(aE) ? DEFAULTS.activeEnergy : Math.round(aE),
+      exerciseTime: Number.isNaN(exT) ? DEFAULTS.exerciseTime : Math.round(exT),
+      timeInDaylight: Number.isNaN(get("timeInDaylight")) ? DEFAULTS.timeInDaylight : Math.round(get("timeInDaylight")),
+      flights: Number.isNaN(get("flights")) ? DEFAULTS.flights : Math.round(get("flights")),
       wakeUps: Number.isNaN(get("wakeUps")) ? DEFAULTS.wakeUps : Math.round(get("wakeUps")),
     };
   }).filter((d) => Number.isFinite(d.hrv) && Number.isFinite(d.rhr));
@@ -208,9 +236,41 @@ function buildRawFromWide(rows, headers) {
   return { days: out.sort((a, b) => a.date - b.date), diag };
 }
 
-// Proxy de sueño HONESTO: cuando el export NO trae sueño real, estimamos
-// sueño a partir de la recuperación autónoma (HRV/RHR). NO es sueño medido:
-// se marca sleepEstimated=true para mostrarlo como "estimado (proxy)" en la UI.
+// Proxy de sueño HONESTO (cuando el export NO trae sueño real):
+//  (1) Ventana de sueño por TIMING: agrupa HeartRate por hora del día y busca
+//      el tramo de HR sostenidamente baja (ventana de reposo). Da horas de
+//      ventana. Si hay pocas muestras nocturnas -> pasa al paso 2.
+//  (2) Fallback por recuperación (HRV/RHR) si no hay timing fiable.
+//  (3) timeInDaylight modula la calidad/eficiencia (ritmo circadiano).
+// Siempre sleepEstimated=true: es un proxy, NO sueño medido.
+function estimateSleepWindowHours(series) {
+  // series: [{v, t:Date}] del día. Agrupa por hora local.
+  const byHour = {}; // hora -> [v]
+  for (const s of series) {
+    if (!s.t || isNaN(s.t.getTime())) continue;
+    const h = s.t.getHours();
+    (byHour[h] = byHour[h] || []).push(s.v);
+  }
+  const horas = Object.keys(byHour).map(Number).sort((a, b) => a - b);
+  if (horas.length < 6) return null; // muy pocas horas muestreadas -> no fiable
+  const median = (a) => { const s = [...a].sort((x, y) => x - y); return s[Math.floor(s.length / 2)]; };
+  const medByHour = horas.map((h) => ({ h, m: median(byHour[h]) }));
+  const vals = medByHour.map((x) => x.m);
+  const globalMed = median(vals);
+  const lowThr = globalMed * 0.92; // HR bajo = en reposo
+  // Busca la mayor racha de horas consecutivas con HR <= lowThr (circular en horas).
+  const flags = medByHour.map((x) => (x.m <= lowThr ? 1 : 0));
+  // expandir circularmente para abarcar sueño que cruza medianoche
+  const ext = [...flags, ...flags];
+  let best = 0, cur = 0, bestStart = -1, curStart = -1;
+  for (let i = 0; i < ext.length; i++) {
+    if (ext[i]) { if (cur === 0) curStart = i % 24; cur++; if (cur > best) { best = cur; bestStart = curStart; } }
+    else cur = 0;
+  }
+  if (best < 4) return null; // ventana demasiado corta para ser sueño
+  return { hours: clamp(best, 4, 10), startHour: bestStart };
+}
+
 function applySleepProxy(days) {
   const n = days.length;
   if (!n) return days;
@@ -221,12 +281,19 @@ function applySleepProxy(days) {
   const mH = mean(hrv), sH = std(hrv, mH);
   const mR = mean(rhr), sR = std(rhr, mR);
   return days.map((d) => {
-    const hrvZ = (d.hrv - mH) / sH;       // HRV alto => mejor recuperación
-    const rhrZ = (d.rhr - mR) / sR;       // RHR bajo => mejor recuperación
-    const recovery = clamp(50 + 14 * hrvZ - 11 * rhrZ, 8, 96); // 0-100
-    const hours = clamp(6.3 + (recovery - 50) / 50 * 1.6, 5.2, 8.3);
-    const eff = clamp(72 + (recovery - 50) * 0.42, 56, 95);
-    return { ...d, sleepHours: +hours.toFixed(1), sleepEff: Math.round(eff), sleepPerf: Math.round(recovery), sleepEstimated: true };
+    const hrvZ = (d.hrv - mH) / sH;
+    const rhrZ = (d.rhr - mR) / sR;
+    const recovery = clamp(50 + 14 * hrvZ - 11 * rhrZ, 8, 96);
+    // (1) Ventana por timing
+    const win = d.hrSeries && d.hrSeries.length ? estimateSleepWindowHours(d.hrSeries) : null;
+    let hours, source;
+    if (win) { hours = win.hours; source = "timing"; }
+    else { hours = clamp(6.3 + (recovery - 50) / 50 * 1.6, 5.2, 8.3); source = "recovery"; }
+    // (3) calidad: recuperación + luz solar (circadiano). Más luz -> mejor sueño.
+    const daylight = d.timeInDaylight || 0;
+    const daylightBonus = clamp((daylight - 30) / 30, -8, 10); // ~30min base
+    const eff = clamp(72 + (recovery - 50) * 0.42 + daylightBonus, 56, 96);
+    return { ...d, sleepHours: +hours.toFixed(1), sleepEff: Math.round(eff), sleepPerf: Math.round(recovery), sleepProxySource: source, sleepEstimated: true };
   });
 }
 

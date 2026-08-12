@@ -167,7 +167,7 @@ export default function DataSourceModal({
                         })()}
                       </div>
                       {csvDiag.sleepEstimated && !csvDiag.hasSleep && (
-                        <span style={{ color: C.textFaint }} className="text-[10.5px]">El archivo no traía sueño real → se estima desde tu recuperación (HRV/RHR). Es un <b>proxy</b>, no sueño medido.</span>
+                        <span style={{ color: C.textFaint }} className="text-[10.5px]">El archivo no traía sueño real → se estima desde el patrón de <b>Heart Rate</b> (ventana de HR baja) o recuperación HRV/RHR. Es un <b>proxy</b>, no sueño medido.</span>
                       )}
                       {!csvDiag.hasSleep && !csvDiag.sleepEstimated && (
                         <span style={{ color: C.textFaint }} className="text-[10.5px]">El sueño no venía en este archivo → se usa un valor neutro (no se inventa).</span>
