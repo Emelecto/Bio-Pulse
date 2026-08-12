@@ -4,7 +4,7 @@
 // ============================================================
 import React, { useEffect, useRef, useState } from "react";
 import { Heart, Activity, Wind, BatteryMedium, Zap, Sun, TrendingUp } from "lucide-react";
-import { C, Sparkline, buildSmoothPath } from "./ui.jsx";
+import { C, Sparkline, buildSmoothPath, fmt1 } from "./ui.jsx";
 
 // Genera una onda tipo ECG para un BPM dado.
 function ecgWave(bpm, points = 120) {
@@ -101,7 +101,7 @@ function ActivityStat({ icon: Icon, label, value, unit, color }) {
       <div style={{ background: `${color}1A`, color }} className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0"><Icon size={13} /></div>
       <div className="min-w-0">
         <div className="flex items-baseline gap-1">
-          <span style={{ color: C.text, fontFamily: "'IBM Plex Mono', monospace" }} className="text-sm font-semibold tabular-nums">{value}</span>
+          <span style={{ color: C.text, fontFamily: "'IBM Plex Mono', monospace" }} className="text-sm font-semibold tabular-nums">{fmt1(value)}</span>
           <span style={{ color: C.textFaint }} className="text-[10px]">{unit}</span>
         </div>
         <span style={{ color: C.textMuted }} className="text-[10.5px] leading-tight block truncate">{label}</span>
@@ -118,7 +118,7 @@ function LiveCard({ icon: Icon, label, value, unit, color, spark }) {
         <span style={{ color: C.textMuted }} className="text-xs font-medium truncate">{label}</span>
       </div>
       <div className="flex items-baseline gap-1">
-        <span style={{ color: C.text, fontFamily: "'IBM Plex Mono', monospace" }} className="text-2xl font-semibold tabular-nums">{value}</span>
+        <span style={{ color: C.text, fontFamily: "'IBM Plex Mono', monospace" }} className="text-2xl font-semibold tabular-nums">{fmt1(value)}</span>
         <span style={{ color: C.textFaint }} className="text-xs">{unit}</span>
       </div>
       <Sparkline data={spark} color={color} height={28} />

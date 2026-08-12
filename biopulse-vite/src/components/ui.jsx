@@ -4,6 +4,13 @@
 // ============================================================
 import React from "react";
 
+// Formatea un número con MÁXIMO 1 decimal (enteros sin decimales).
+// Para que todos los recuadros de métricas muestren HRV/RHR/etc. consistentes.
+export function fmt1(v) {
+  if (typeof v !== "number" || !isFinite(v)) return v;
+  return Number.isInteger(v) ? String(v) : v.toFixed(1);
+}
+
 export const C_DARK = {
   bg: "#050A10", bgSoft: "#0A121D", card: "rgba(13,24,40,0.55)", cardAlt: "rgba(18,32,52,0.55)",
   border: "#1C2E46", borderSoft: "#15253A",
@@ -131,7 +138,7 @@ export function MetricCard({ icon: Icon, label, value, unit, delta, sparkData, a
       </div>
 
       <div className="flex items-baseline gap-1 min-w-0">
-        <span style={{ color: C.text, fontFamily: "'IBM Plex Mono', monospace" }} className="text-[22px] font-semibold tabular-nums truncate">{value}</span>
+        <span style={{ color: C.text, fontFamily: "'IBM Plex Mono', monospace" }} className="text-[22px] font-semibold tabular-nums truncate">{fmt1(value)}</span>
         {unit && <span style={{ color: C.textFaint }} className="text-[11px] shrink-0">{unit}</span>}
       </div>
 
