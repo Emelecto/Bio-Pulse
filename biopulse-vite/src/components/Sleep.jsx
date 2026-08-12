@@ -57,8 +57,16 @@ export default function Sleep({ data, onBreathe }) {
     </div>
   );
 
+  const sleepEstimated = data.some((d) => d.sleepEstimated);
+
   return (
     <div className="flex flex-col gap-5">
+      {sleepEstimated && (
+        <div style={{ background: `${C.purple}12`, border: `1px solid ${C.purple}44`, color: C.purple }} className="rounded-xl p-2.5 text-[11px] flex items-center gap-2">
+          <Moon size={14} />
+          <span><b>Sueño estimado (proxy).</b> Tu export no traía sueño real; BioPulse lo estima desde tu recuperación (HRV/RHR). No es sueño medido.</span>
+        </div>
+      )}
       {/* HERO: Sleep Score de la noche seleccionada */}
       <div style={{ background: `linear-gradient(160deg, ${C.card}, ${C.bgSoft})`, border: `1px solid ${C.border}` }} className="rounded-3xl p-5 pt-4 relative overflow-hidden flex flex-col items-center">
         <span style={{ color: C.textFaint }} className="text-[11px] uppercase tracking-wider font-medium mb-2 self-start">

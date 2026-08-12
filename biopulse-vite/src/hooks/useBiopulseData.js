@@ -5,7 +5,7 @@
 // ============================================================
 import { useMemo, useState, useEffect } from "react";
 import Papa from "papaparse";
-import { generateSyntheticRawDays, computePipeline } from "../lib/bioUtils.js";
+import { generateSyntheticRawDays, computePipeline, clamp } from "../lib/bioUtils.js";
 
 // ---- DICCIONARIO DE MÉTRICAS AGRUPADAS POR SEMÁNTICA ----
 // Cada clave mapea a uno o varios "patrones" (substrings normalizados) que
@@ -208,17 +208,45 @@ function buildRawFromWide(rows, headers) {
   return { days: out.sort((a, b) => a.date - b.date), diag };
 }
 
+// Proxy de sueño HONESTO: cuando el export NO trae sueño real, estimamos
+// sueño a partir de la recuperación autónoma (HRV/RHR). NO es sueño medido:
+// se marca sleepEstimated=true para mostrarlo como "estimado (proxy)" en la UI.
+function applySleepProxy(days) {
+  const n = days.length;
+  if (!n) return days;
+  const mean = (arr) => arr.reduce((a, b) => a + b, 0) / arr.length;
+  const std = (arr, m) => { const v = arr.reduce((a, b) => a + (b - m) ** 2, 0) / arr.length; return Math.sqrt(v) || 1; };
+  const hrv = days.map((d) => d.hrv);
+  const rhr = days.map((d) => d.rhr);
+  const mH = mean(hrv), sH = std(hrv, mH);
+  const mR = mean(rhr), sR = std(rhr, mR);
+  return days.map((d) => {
+    const hrvZ = (d.hrv - mH) / sH;       // HRV alto => mejor recuperación
+    const rhrZ = (d.rhr - mR) / sR;       // RHR bajo => mejor recuperación
+    const recovery = clamp(50 + 14 * hrvZ - 11 * rhrZ, 8, 96); // 0-100
+    const hours = clamp(6.3 + (recovery - 50) / 50 * 1.6, 5.2, 8.3);
+    const eff = clamp(72 + (recovery - 50) * 0.42, 56, 95);
+    return { ...d, sleepHours: +hours.toFixed(1), sleepEff: Math.round(eff), sleepPerf: Math.round(recovery), sleepEstimated: true };
+  });
+}
+
 // Punto de entrada: detecta formato y convierte.
 function parseHealthCsv(rows, headers) {
   const fmt = detectFormat(headers);
-  if (fmt === "tidy") return buildRawFromTidy(rows);
-  if (fmt === "wide") return buildRawFromWide(rows, headers);
-  // unknown: intenta tidy primero (más común en exports), luego wide.
-  const tidy = buildRawFromTidy(rows);
-  if (tidy.days.length >= 3) return tidy;
-  const wide = buildRawFromWide(rows, headers);
-  if (wide.days.length >= 3) return wide;
-  return { days: [], diag: { format: "unknown", error: "No se reconocieron columnas de HRV/RHR ni un formato de export conocido." } };
+  let res;
+  if (fmt === "tidy") res = buildRawFromTidy(rows);
+  else if (fmt === "wide") res = buildRawFromWide(rows, headers);
+  else {
+    const tidy = buildRawFromTidy(rows);
+    if (tidy.days.length >= 3) res = tidy;
+    else res = buildRawFromWide(rows, headers);
+  }
+  if (!res.days.length) return res;
+  if (!res.diag.hasSleep) {
+    res.days = applySleepProxy(res.days);
+    res.diag.sleepEstimated = true;
+  }
+  return res;
 }
 
 // Campos mostrados en el mapeo manual (solo etiquetas; la detección

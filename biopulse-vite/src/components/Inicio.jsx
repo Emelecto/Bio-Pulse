@@ -142,7 +142,7 @@ export default function Inicio({ data, today, riskThreshold, userProfile, logs, 
       <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, padding: 14, display: "flex", alignItems: "center", gap: 12 }}>
         <div style={{ background: C.bgSoft, borderRadius: 12, padding: 10 }}><Moon size={20} color={C.teal} /></div>
         <div style={{ flex: 1 }}>
-          <div style={{ color: C.text, fontWeight: 600, fontSize: 14 }}>Sueño</div>
+          <div style={{ color: C.text, fontWeight: 600, fontSize: 14 }}>Sueño {data?.some((d) => d.sleepEstimated) && <span style={{ color: C.purple, fontSize: 11, fontWeight: 500, marginLeft: 4 }}>≈ proxy</span>}</div>
           <div style={{ color: C.textMuted, fontSize: 12 }}>{today?.sleepHours} h · eficiencia {today?.sleepEfficiency}%</div>
         </div>
         <div style={{ color: C.teal, fontWeight: 700 }}>{today?.sleepScore}</div>

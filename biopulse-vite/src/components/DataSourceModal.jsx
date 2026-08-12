@@ -146,13 +146,30 @@ export default function DataSourceModal({
                     <div className="flex flex-col gap-1.5">
                       <span style={{ color: C.textMuted }} className="text-[11px]">{csvDiag.days} días convertidos con HRV y RHR válidos.</span>
                       <div className="flex flex-wrap gap-1.5">
-                        {[["HRV", csvDiag.hasHrv], ["RHR", csvDiag.hasRhr], ["Pasos", csvDiag.hasSteps], ["Sueño", csvDiag.hasSleep]].map(([label, ok]) => (
-                          <span key={label} style={{ background: ok ? `${C.teal}1A` : `${C.amber}1A`, color: ok ? C.teal : C.amber, border: `1px solid ${ok ? C.teal + "44" : C.amber + "44"}` }} className="text-[10.5px] px-2 py-0.5 rounded-full font-medium">
-                            {ok ? "✓" : "•"} {label}
-                          </span>
-                        ))}
+                        {(() => {
+                          const chips = [
+                            { label: "HRV", state: csvDiag.hasHrv ? "ok" : "missing" },
+                            { label: "RHR", state: csvDiag.hasRhr ? "ok" : "missing" },
+                            { label: "Pasos", state: csvDiag.hasSteps ? "ok" : "missing" },
+                            { label: "Sueño", state: csvDiag.hasSleep ? "ok" : csvDiag.sleepEstimated ? "proxy" : "missing" },
+                          ];
+                          const styleFor = (s) => s === "ok" ? { bg: `${C.teal}1A`, fg: C.teal, bd: `${C.teal}44`, mark: "✓" }
+                            : s === "proxy" ? { bg: `${C.purple}1A`, fg: C.purple, bd: `${C.purple}44`, mark: "≈" }
+                            : { bg: `${C.amber}1A`, fg: C.amber, bd: `${C.amber}44`, mark: "•" };
+                          return chips.map(({ label, state }) => {
+                            const st = styleFor(state);
+                            return (
+                              <span key={label} style={{ background: st.bg, color: st.fg, border: `1px solid ${st.bd}` }} className="text-[10.5px] px-2 py-0.5 rounded-full font-medium">
+                                {st.mark} {label}
+                              </span>
+                            );
+                          });
+                        })()}
                       </div>
-                      {!csvDiag.hasSleep && (
+                      {csvDiag.sleepEstimated && !csvDiag.hasSleep && (
+                        <span style={{ color: C.textFaint }} className="text-[10.5px]">El archivo no traía sueño real → se estima desde tu recuperación (HRV/RHR). Es un <b>proxy</b>, no sueño medido.</span>
+                      )}
+                      {!csvDiag.hasSleep && !csvDiag.sleepEstimated && (
                         <span style={{ color: C.textFaint }} className="text-[10.5px]">El sueño no venía en este archivo → se usa un valor neutro (no se inventa).</span>
                       )}
                       {csvDiag.unmappedTypes?.length > 0 && (
