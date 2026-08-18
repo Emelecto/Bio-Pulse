@@ -35,3 +35,6 @@ open-wearables/
 # CSVs de datos personales (no commitear)
 converted-health-data.csv
 *.csv
+
+# Vercel link local (no commitear)
+.vercel
