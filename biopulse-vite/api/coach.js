@@ -161,12 +161,16 @@ export default async function handler(req, res) {
   const metrics = sanitizeMetrics(body.metrics || {});
   const metricLine = Object.entries(metrics).map(([k, v]) => `${k}=${v}`).join(", ");
   const tab = typeof body.tab === "string" && TAB_CTX[body.tab] ? body.tab : "dash";
-  const apiKey = process.env.GROQ_API_KEY;
+  // Acepta GROQ_API_KEY (Groq SDK) o GROK_API_KEY (alias por si se nombró mal).
+  // El SDK de Groq apunta a api.groq.com; una key de xAI/Grok real necesitaría
+  // otro SDK (no contemplado aquí). reason ayuda a diagnosticar en el frontend.
+  const apiKey = process.env.GROQ_API_KEY || process.env.GROK_API_KEY;
+  const apiKeyMissing = !apiKey;
 
   // ---------- MODO ADVICE (sin mensaje): consejo único automatico ----------
   if (!isChat) {
     if (Object.keys(metrics).length === 0) return send(res, 400, { error: "Sin métricas válidas." });
-    if (!apiKey) return send(res, 200, { advice: "", fallback: true });
+    if (apiKeyMissing) return send(res, 200, { advice: "", fallback: true, reason: "GROQ_API_KEY no configurada en el servidor" });
     try {
       const groq = new Groq({ apiKey });
       const completion = await groq.chat.completions.create({
@@ -190,9 +194,9 @@ export default async function handler(req, res) {
   if (!v.ok) return send(res, 400, { error: v.reason });
   const history = validateHistory(body.history);
 
-  if (!apiKey) {
+  if (apiKeyMissing) {
     // Fallback local: el frontend usara los bancos de 101 mensajes.
-    return send(res, 200, { reply: "", fallback: true });
+    return send(res, 200, { reply: "", fallback: true, reason: "GROQ_API_KEY no configurada en el servidor" });
   }
 
   try {

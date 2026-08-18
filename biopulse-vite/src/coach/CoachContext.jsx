@@ -183,6 +183,8 @@ export function CoachProvider({ children, today, logs = [] }) {
           setMessages((m) => [...m, { role: "coach", text: j.reply, source: j.source }]);
           if (j.source === "groq") setAiConnected(true);
         } else {
+          // Si el backend indica por qué cayó a local, lo mostramos (diagnóstico).
+          if (j && j.reason) setNotice(j.reason + ". El Coach usa el motor local hasta configurarla.");
           fallbackLocal();
         }
       }
