@@ -126,7 +126,7 @@ export default function BreathSession({ open, onClose, today }) {
                 </g>
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span style={{ color: routine.color }} className="text-3xl font-semibold tracking-wide" style={{ transition: "opacity 0.4s" }}>{phase.label}</span>
+                <span style={{ color: routine.color, transition: "opacity 0.4s" }} className="text-3xl font-semibold tracking-wide">{phase.label}</span>
                 <span style={{ color: C.textMuted, fontFamily: "'IBM Plex Mono', monospace" }} className="text-sm mt-2 tabular-nums">{mm}:{ss}</span>
               </div>
             </div>
